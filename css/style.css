@@ -1,0 +1,102 @@
+:root {
+  --bg:     #E9EAE4;   /* fondo */
+  --ink:    #17181C;   /* texto principal */
+  --muted:  #6B6E76;   /* texto secundario */
+  --card:   #FFFFFF;   /* fondo de cada botón */
+  --line:   rgba(0,0,0,0.09);
+  --accent: #1B3BFF;   /* color de acento (cambia este para otro look) */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", system-ui, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 9vh 24px 64px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { width: 100%; max-width: 600px; }
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+h1 {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: clamp(40px, 9vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+}
+h1 .dot { color: var(--accent); }
+
+.tagline {
+  color: var(--muted);
+  font-size: 17px;
+  margin-top: 16px;
+  max-width: 46ch;
+}
+
+/* ---- LISTA DE PROYECTOS ---- */
+.projects {
+  margin-top: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 22px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.project:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 10px 28px -14px rgba(27,59,255,0.45);
+}
+.project:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.project .text { flex: 1; }
+.project .name { font-weight: 600; font-size: 17px; }
+.project .desc { color: var(--muted); font-size: 14px; margin-top: 3px; }
+
+.arrow {
+  font-size: 20px;
+  color: var(--accent);
+  transition: transform .18s ease;
+}
+.project:hover .arrow { transform: translateX(4px); }
+
+footer {
+  margin-top: 48px;
+  font-size: 13px;
+  color: var(--muted);
+}
+footer a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+footer a:hover { border-color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .project, .arrow { transition: none; }
+}
