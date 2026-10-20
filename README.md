@@ -12,7 +12,7 @@ Este repositorio es mi página de inicio personal: una portada que enlaza a todo
 
 ## Formación
 
-Técnico Superior en Desarrollo de Aplicaciones Multiplataforma (2024 – actualidad). Primer año en Chíos Formación y segundo en el CPR Plurilingüe Karbo.
+Técnico Superior en Desarrollo de Aplicaciones Multiplataforma (2024 – 2026)..
 
 ## Experiencia
 
