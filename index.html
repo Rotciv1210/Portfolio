@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f5f4ef" />
   <meta name="description" content="Portfolio de Víctor Pereira, desarrollador de aplicaciones multiplataforma. Proyectos web, juegos y aplicaciones." />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:url" content="https://victorpereiraportfolio.vercel.app/" />
+  <meta property="og:title" content="Víctor Pereira — Desarrollador de software" />
+  <meta property="og:description" content="Desarrollador de aplicaciones multiplataforma en A Coruña. Proyectos web, juegos y aplicaciones." />
+  <meta property="og:image" content="https://victorpereiraportfolio.vercel.app/imagenes/fotoCV.jpg" />
+  <meta property="og:image:alt" content="Foto de Víctor Pereira" />
+  <meta name="twitter:card" content="summary" />
   <title>Víctor Pereira — Desarrollador de software</title>
   <link rel="icon" href="imagenes/favicon.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,7 +33,11 @@
       <h1>Hola, soy<br><em>Víctor Pereira.</em></h1>
       <div class="hero-bottom">
         <p class="intro">Desarrollador de aplicaciones multiplataforma. Me gusta convertir ideas en productos digitales útiles, cuidados y con personalidad.</p>
-        <a class="scroll-link" href="#proyectos"><span class="scroll-icon">↓</span> Explora mis proyectos</a>
+        <div class="hero-actions">
+          <a class="btn-contact" href="mailto:victorpereirarigal00@gmail.com">Escríbeme <span aria-hidden="true">↗</span></a>
+          <a class="btn-cv" href="Victor_Pereira_CV.pdf" download>Descargar CV <span aria-hidden="true">↓</span></a>
+          <a class="scroll-link" href="#proyectos"><span class="scroll-icon" aria-hidden="true">↓</span> Explora mis proyectos</a>
+        </div>
       </div>
       <img class="hero-photo" src="imagenes/fotoCV.jpg" alt="Foto de Víctor Pereira" />
     </header>
@@ -33,7 +45,7 @@
     <section class="projects-section" id="proyectos" aria-labelledby="projects-title">
       <div class="section-heading">
         <div><p class="eyebrow">Una selección de trabajo</p><h2 id="projects-title">Proyectos<span class="accent">.</span></h2></div>
-        <span class="project-count">03 / 03</span>
+        <span class="project-count">01 / 01</span><!-- Actualiza este contador al añadir proyectos -->
       </div>
 
       <div class="projects">
@@ -41,13 +53,14 @@
           <span class="project-number">01</span>
           <div class="project-content">
             <div class="project-title-row"><h3>Black Lotus</h3><span class="project-type">Juego · Web</span></div>
+            <p class="project-context">Desarrollado durante mis prácticas · feb–jun 2026</p>
             <p>Un juego de azar con temática de cartas mágicas: revela cartas ocultas y apuesta fichas en partidas de piedra, papel o tijera. Los eventos especiales y las rachas de victorias pueden multiplicar tus ganancias.</p>
             <ul class="tags" aria-label="Tecnologías"><li>JavaScript</li><li>Game design</li><li>Vercel</li></ul>
           </div>
           <span class="project-arrow" aria-hidden="true">↗</span>
         </a>
 
-<!-- Este es un comentario en HTML 
+        <!-- Proyecto oculto: CoruñaDeportiva. Para mostrarlo, borra esta línea y la de "Fin del proyecto oculto" (y actualiza el contador a 02 / 02).
         <a class="project" href="https://corunadeportiva.vercel.app/" target="_blank" rel="noopener noreferrer">
           <span class="project-number">02</span>
           <div class="project-content">
@@ -57,18 +70,18 @@
           </div>
           <span class="project-arrow" aria-hidden="true">↗</span>
         </a>
+        Fin del proyecto oculto -->
       </div>
     </section>
--->
-    <section class="about" aria-label="Sobre mí">
-      <span class="about-mark" aria-hidden="true">✳</span>
-      <div><p class="eyebrow">Un poco sobre mí</p><p class="about-copy">Técnico Superior en <strong>Desarrollo de Aplicaciones Multiplataforma</strong>, con experiencia práctica en desarrollo y programación iGaming. Siempre aprendiendo, siempre construyendo.</p></div>
-      <div class="skills"><span>Java</span><span>JavaScript</span><span>Python</span><span>React</span><span>Spring Boot</span><span>Node.js</span></div>
+
+    <section class="about" aria-labelledby="about-title">
+      <div><p class="eyebrow">Un poco sobre mí</p><h2 id="about-title">Sobre mí<span class="accent">.</span></h2><p class="about-copy">Técnico Superior en <strong>Desarrollo de Aplicaciones Multiplataforma</strong>, con experiencia práctica en desarrollo y programación iGaming. Siempre aprendiendo, siempre construyendo.</p></div>
+      <ul class="tags skills" aria-label="Tecnologías"><li>Java</li><li>JavaScript</li><li>Python</li><li>React</li><li>Spring Boot</li><li>Node.js</li></ul>
     </section>
 
     <footer>
       <span class="footer-note">Hecho con curiosidad en A Coruña <span>© 2026</span></span>
-      <div class="footer-links"><a href="mailto:victorpereirarigal00@gmail.com">Email <span>↗</span></a><a href="https://github.com/Rotciv1210" target="_blank" rel="noopener noreferrer">GitHub <span>↗</span></a><a href="https://www.linkedin.com/in/victor-pereira-rigal-969aa236b/" target="_blank" rel="noopener noreferrer">LinkedIn <span>↗</span></a></div>
+      <div class="footer-links"><a href="Victor_Pereira_CV.pdf" download>CV <span>↓</span></a><a href="mailto:victorpereirarigal00@gmail.com">Email <span>↗</span></a><a href="https://github.com/Rotciv1210" target="_blank" rel="noopener noreferrer">GitHub <span>↗</span></a><a href="https://www.linkedin.com/in/victor-pereira-rigal-969aa236b/" target="_blank" rel="noopener noreferrer">LinkedIn <span>↗</span></a></div>
     </footer>
   </main>
 </body>
