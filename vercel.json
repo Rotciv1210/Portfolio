@@ -1,0 +1,21 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "victorpereiraportfolio.vercel.app" }],
+      "destination": "https://vpereira.dev/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/blacklotus",
+      "destination": "/blacklotus/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/blacklotus/:path*",
+      "destination": "https://victorpereirablacklotus.vercel.app/:path*"
+    }
+  ]
+}

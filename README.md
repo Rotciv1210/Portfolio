@@ -20,7 +20,7 @@ Prácticas en desarrollo y programación dentro del sector iGaming, participando
 
 - Apliqué matemáticas del juego: RTP, probabilidad y balance.
 - Analicé mercados y modelos de negocio del sector.
-- Desarrollé el juego **The Black Lotus** → https://victorpereirablacklotus.vercel.app/
+- Desarrollé el juego **The Black Lotus** → https://vpereira.dev/blacklotus/
 
 ## Contacto
 
