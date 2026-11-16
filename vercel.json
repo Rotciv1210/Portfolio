@@ -2,7 +2,12 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "victorpereiraportfolio.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "victorpereiraportfolio.vercel.app"
+        }
+      ],
       "destination": "https://vpereira.dev/:path*",
       "permanent": true
     },
@@ -13,6 +18,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/blacklotus/",
+      "destination": "https://victorpereirablacklotus.vercel.app/stake_board_game.html"
+    },
     {
       "source": "/blacklotus/:path*",
       "destination": "https://victorpereirablacklotus.vercel.app/:path*"
