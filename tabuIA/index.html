@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f5f4ef" />
+  <meta name="description" content="Tabú entre modelos locales: tres modelos de lenguaje juegan al Tabú en local con Ollama y un árbitro en Python decide cada jugada. Cómo funciona y qué resultados dio." />
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:url" content="https://www.vpereira.dev/tabuIA/" />
+  <meta property="og:title" content="Tabú entre modelos locales — Víctor Pereira" />
+  <meta property="og:description" content="Tres modelos de lenguaje juegan al Tabú en local. Un árbitro en Python decide. Así funciona y esto es lo que salió." />
+  <meta name="twitter:card" content="summary" />
+  <title>Tabú entre modelos locales — Víctor Pereira</title>
+  <link rel="icon" href="/imagenes/favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    :root {
+      --violeta: #5b3fd6;      /* cabecera de la tarjeta, la misma que en la interfaz del juego */
+      --violeta-oscuro: #3f2a9e;
+      --carta: #fbf9f2;
+      --azul: #2a62c9;
+      --rojo: #c4471d;
+      --bien: #2f6b45;
+      --mal: #b3261e;
+      --vigia: #7a5c0e;
+    }
+
+    /* ---------- cabecera ---------- */
+    .t-top .back { font: 12px var(--mono); color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+    .t-top .back:hover { color: var(--accent-strong); }
+
+    .t-hero { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 56px; align-items: center; padding: 72px 0 76px; border-bottom: 1px solid var(--line); }
+    .t-hero h1 { font: 600 clamp(44px, 6.4vw, 70px)/1.02 "Playfair Display", Georgia, serif; letter-spacing: -.045em; margin: 0; max-width: 12ch; }
+    .t-hero .lead { margin-top: 26px; max-width: 54ch; color: var(--body); font-size: 18px; line-height: 1.7; }
+    .t-hero .lead strong { color: var(--ink); font-weight: 600; }
+    .facts { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 6px 34px; margin-top: 34px; }
+    .facts dt { font: 12px var(--mono); color: var(--muted); }
+    .facts dd { font-size: 15px; font-weight: 600; margin-top: 2px; }
+
+    /* ---------- la tarjeta de Tabú ---------- */
+    .carta { width: 100%; max-width: 300px; background: var(--carta); border: 1px solid #d9d4c4; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 0 #d9d4c4, 0 18px 40px -22px #2a1f5c55; transform: rotate(2.2deg); }
+    .carta-cab { background: var(--violeta); color: #fff; text-align: center; padding: 26px 18px 22px; }
+    .carta-cab small { display: block; font: 12px var(--mono); opacity: .8; }
+    .carta-cab b { display: block; font: 700 40px/1 "Playfair Display", Georgia, serif; letter-spacing: -.02em; margin-top: 8px; }
+    .carta ul { list-style: none; padding: 18px 22px 22px; }
+    .carta li { font-size: 19px; font-weight: 500; text-align: center; padding: 9px 0; border-bottom: 1px dashed #ddd6c3; color: #3b3b45; }
+    .carta li:last-child { border-bottom: 0; }
+    .carta-pie { display: flex; justify-content: space-between; font: 11px var(--mono); color: var(--muted); padding: 0 16px 14px; }
+
+    /* ---------- secciones ---------- */
+    .t-sec { padding: 72px 0; border-bottom: 1px solid var(--line); }
+    .t-sec > h2, .t-head h2 { font: 600 36px/1.12 "Playfair Display", Georgia, serif; letter-spacing: -.03em; }
+    .t-sec .intro-sec { margin-top: 14px; max-width: 62ch; color: var(--body); font-size: 17px; line-height: 1.75; }
+    .t-sec p code, .t-sec li code, .t-sec td code { font: 14px var(--mono); background: #e9e8e0; padding: 1px 5px; border-radius: 3px; color: var(--ink); }
+
+    /* ---------- turno real ---------- */
+    .turno { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; margin-top: 40px; align-items: start; }
+    .turno .carta { transform: none; position: sticky; top: 24px; }
+    .turno .carta-cab b { font-size: 34px; }
+    .equipo { margin-top: 18px; font-size: 14px; color: var(--body); line-height: 1.6; }
+    .equipo b { color: var(--ink); }
+    .chip { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+    .pasos { list-style: none; counter-reset: paso; border-left: 2px solid var(--line); margin-left: 15px; }
+    .paso { counter-increment: paso; position: relative; padding: 0 0 26px 30px; }
+    .paso::before { content: counter(paso); position: absolute; left: -16px; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line); display: grid; place-items: center; font: 500 12px var(--mono); color: var(--muted); }
+    .paso .quien { font-size: 14px; font-weight: 600; }
+    .paso .quien span { font: 12px var(--mono); color: var(--muted); font-weight: 400; margin-left: 6px; }
+    .paso .dice { margin-top: 8px; padding: 14px 16px; border-radius: 4px 14px 14px 14px; background: #fff; border: 1px solid var(--line); font-size: 16px; line-height: 1.65; max-width: 60ch; }
+    .paso .nota { margin-top: 8px; font-size: 15px; color: var(--body); line-height: 1.6; max-width: 60ch; }
+    .paso.descriptor::before { border-color: var(--azul); color: var(--azul); }
+    .paso.adivinador::before { border-color: var(--violeta); color: var(--violeta); }
+    .paso.adivinador .dice { display: inline-block; font: 600 20px "DM Sans", sans-serif; padding: 8px 18px; border-radius: 14px; }
+    .paso.vigilante::before { border-color: var(--vigia); color: var(--vigia); }
+    .paso.arbitro::before { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .res { display: inline-block; margin-left: 10px; font: 500 13px var(--mono); vertical-align: 3px; }
+    .res.ok { color: var(--bien); }
+    .res.ko { color: var(--mal); }
+    .acusa { color: var(--body); }
+    .paso.vigilante .dice { border-style: dashed; border-color: #d8c79a; }
+    .paso.final .dice { border-color: var(--bien); box-shadow: inset 4px 0 0 var(--bien); }
+
+    .controles { display: flex; gap: 12px; margin: 6px 0 0 45px; flex-wrap: wrap; }
+    .controles button { min-height: 44px; padding: 0 20px; border-radius: 999px; font: 500 13px var(--mono); cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); transition: background .2s; }
+    .controles button.sec { background: transparent; color: var(--ink); }
+    .controles button:hover { background: var(--violeta); border-color: var(--violeta); color: #fff; }
+    .controles button:focus-visible { outline: 2px solid var(--violeta); outline-offset: 3px; }
+    .contraste[hidden], .controles[hidden] { display: none; }
+    .paso.nuevo, .contraste.nuevo { animation: entra .35s ease-out; }
+    @media (prefers-reduced-motion: reduce) { .paso.nuevo, .contraste.nuevo { animation: none; } }
+    @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .contraste { margin-top: 34px; margin-left: 45px; padding: 20px 22px; border: 1px solid #e7c3b5; background: #fbefe9; border-radius: 4px; max-width: 64ch; }
+    .contraste h3 { font-size: 17px; font-weight: 600; }
+    .contraste p { margin-top: 8px; color: var(--body); font-size: 15px; line-height: 1.65; }
+    .contraste blockquote { margin-top: 10px; font-size: 17px; }
+    .contraste mark { background: none; color: var(--mal); font-weight: 700; text-decoration: underline wavy var(--mal); text-underline-offset: 4px; }
+
+    /* ---------- roles ---------- */
+    .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 36px; border-top: 2px solid var(--ink); }
+    .rol { padding: 22px 24px 4px 0; }
+    .rol + .rol { padding-left: 24px; border-left: 1px solid var(--line); }
+    .rol h3 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+    .rol .modelo { font: 12px var(--mono); color: var(--muted); margin-top: 2px; }
+    .rol p { margin-top: 10px; font-size: 15px; color: var(--body); line-height: 1.65; }
+    .rol dl { margin-top: 14px; font-size: 14px; line-height: 1.55; }
+    .rol dt { font-weight: 600; margin-top: 10px; }
+    .rol dd { color: var(--body); }
+    .rol dt.no { color: var(--mal); }
+    .arbitro-nota { margin-top: 30px; padding: 20px 24px; background: var(--ink); color: var(--paper); border-radius: 4px; display: grid; grid-template-columns: 150px 1fr; gap: 20px; align-items: start; }
+    .arbitro-nota b { font: 600 20px "Playfair Display", Georgia, serif; }
+    .arbitro-nota p { color: #d9dbd2; font-size: 15px; line-height: 1.7; }
+
+    /* ---------- trampas ---------- */
+    .capas { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 48px; margin-top: 36px; }
+    .capas h3 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+    .capas h3 + p { margin-top: 8px; font-size: 15px; color: var(--body); line-height: 1.65; }
+    table.tipos { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 15px; }
+    .tipos th { text-align: left; font-weight: 600; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; width: 108px; }
+    .tipos td { padding: 9px 0; border-bottom: 1px solid var(--line); color: var(--body); }
+    .tipos td i { font-style: normal; color: var(--ink); font-weight: 500; }
+    .condiciones { list-style: none; counter-reset: c; margin-top: 16px; }
+    .condiciones li { counter-increment: c; display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.6; color: var(--body); }
+    .condiciones li::before { content: counter(c); font: 500 12px var(--mono); color: var(--vigia); border: 1px solid #d8c79a; border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; }
+    .condiciones strong { color: var(--ink); font-weight: 600; }
+
+    /* ---------- resultados ---------- */
+    .result-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; margin-top: 40px; }
+    .result-grid h3 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+    .result-grid h3 + p { margin-top: 8px; font-size: 15px; color: var(--body); line-height: 1.65; }
+    .grafico { margin-top: 18px; width: 100%; height: auto; }
+    .grafico text { font-family: "DM Sans", sans-serif; }
+    .pie-graf { font: 12px var(--mono); color: var(--muted); margin-top: 6px; }
+    .embudo { list-style: none; margin-top: 18px; }
+    .embudo li { display: grid; grid-template-columns: 1fr 52px; align-items: center; gap: 12px; padding: 7px 0; font-size: 15px; }
+    .embudo .barra { height: 26px; background: #e6e1cf; border-radius: 2px; position: relative; }
+    .embudo .barra span { position: absolute; inset: 0 auto 0 0; background: var(--vigia); border-radius: 2px; }
+    .embudo .barra em { position: absolute; left: 10px; top: 3px; font-style: normal; font-size: 13px; color: #fff; white-space: nowrap; mix-blend-mode: normal; }
+    .embudo .barra.claro em { color: var(--ink); left: calc(var(--w) + 10px); }
+    .embudo b { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .conclusion { margin-top: 48px; font: 600 24px/1.45 "Playfair Display", Georgia, serif; letter-spacing: -.01em; max-width: 46ch; }
+
+    .descriptor-vs { margin-top: 18px; display: grid; gap: 14px; }
+    .dv { display: grid; grid-template-columns: 112px 1fr 50px; align-items: center; gap: 12px; font-size: 14px; }
+    .dv code { font: 13px var(--mono) !important; background: none !important; padding: 0 !important; }
+    .dv .pista { height: 14px; background: #ebe9e1; border-radius: 2px; position: relative; overflow: hidden; }
+    .dv .pista span { position: absolute; inset: 0 auto 0 0; background: var(--mal); }
+    .dv b { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ---------- cómo está hecho ---------- */
+    .hecho { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; margin-top: 36px; }
+    .hecho h3 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+    .modulos { margin-top: 14px; }
+    .modulos div { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.55; }
+    .modulos code { font: 14px var(--mono); color: var(--violeta-oscuro); }
+    .modulos span { color: var(--body); }
+    .hecho ul.lista { margin-top: 14px; padding-left: 18px; color: var(--body); font-size: 15px; line-height: 1.7; }
+    .hecho ul.lista li + li { margin-top: 8px; }
+    .hecho ul.lista strong { color: var(--ink); font-weight: 600; }
+    pre.cmd { margin-top: 14px; background: var(--ink); color: #e9ebe3; border-radius: 4px; padding: 16px 18px; font: 13px/1.8 var(--mono); overflow-x: auto; }
+    pre.cmd .c { color: #9aa093; }
+    .local { margin-top: 30px; }
+    .local p { margin-top: 8px; font-size: 15px; color: var(--body); line-height: 1.7; }
+
+    .t-foot-nav { padding: 40px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+    @media (max-width: 860px) {
+      .t-hero { grid-template-columns: 1fr; gap: 44px; padding: 52px 0 60px; }
+      .t-hero .carta { max-width: 260px; margin: 0 auto; }
+      .facts { grid-template-columns: repeat(2, auto); }
+      .turno { grid-template-columns: 1fr; gap: 32px; }
+      .turno .carta { display: none; }
+      .equipo { margin-top: 0; }
+      .roles { grid-template-columns: 1fr; }
+      .rol + .rol { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+      .rol { padding-bottom: 18px; }
+      .capas, .result-grid, .hecho { grid-template-columns: 1fr; gap: 44px; }
+      .arbitro-nota { grid-template-columns: 1fr; gap: 6px; }
+      .contraste, .controles { margin-left: 0; }
+    }
+    @media (max-width: 480px) {
+      .t-sec { padding: 54px 0; }
+      .t-sec > h2, .t-head h2 { font-size: 30px; }
+      .t-hero .lead { font-size: 17px; }
+      .paso { padding-left: 24px; }
+      .dv { grid-template-columns: 96px 1fr 44px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <nav class="topbar t-top" aria-label="Navegación principal">
+      <a class="monogram" href="/" aria-label="Víctor Pereira, volver al portfolio">VP<span>.</span></a>
+      <a class="back" href="/#proyectos"><span aria-hidden="true">←</span> Todos los proyectos</a>
+    </nav>
+
+    <header class="t-hero">
+      <div>
+        <h1>Tabú entre modelos locales</h1>
+        <p class="lead">Tres modelos de lenguaje juegan al Tabú en mi ordenador. Uno describe una palabra sin poder usar las prohibidas, otro intenta adivinarla y un tercero vigila que nadie haga trampas. <strong>Ninguno decide el resultado:</strong> eso lo hace un árbitro escrito en Python.</p>
+        <dl class="facts">
+          <div><dt>Lenguaje</dt><dd>Python</dd></div>
+          <div><dt>Modelos</dt><dd>Ollama, en local</dd></div>
+          <div><dt>Pruebas</dt><dd>89 con pytest</dd></div>
+          <div><dt>Turnos medidos</dt><dd>360</dd></div>
+        </dl>
+      </div>
+      <div class="carta" aria-label="Tarjeta de ejemplo: palabra secreta barco; prohibidas mar, navegar y puerto">
+        <div class="carta-cab"><small>Palabra secreta</small><b>barco</b></div>
+        <ul aria-label="Palabras prohibidas"><li>mar</li><li>navegar</li><li>puerto</li></ul>
+        <div class="carta-pie"><span>transporte</span><span>fácil</span></div>
+      </div>
+    </header>
+
+    <section class="t-sec" aria-labelledby="turno-title">
+      <h2 id="turno-title">Un turno real, paso a paso</h2>
+      <p class="intro-sec">Esto pasó en el experimento, tal cual quedó guardado en el registro. El equipo azul tiene que adivinar «barco» sin decir «mar», «navegar» ni «puerto», y dispone de tres intentos.</p>
+
+      <div class="turno">
+        <div>
+          <div class="carta" aria-hidden="true">
+            <div class="carta-cab"><small>Palabra secreta</small><b>barco</b></div>
+            <ul><li>mar</li><li>navegar</li><li>puerto</li></ul>
+          </div>
+          <p class="equipo"><span class="chip" style="background:var(--azul)"></span><b>Equipo azul</b><br>Describe <code>llama3.2:3b</code><br>Adivina <code>qwen2.5:3b</code><br>Vigila <code>gemma2:2b</code></p>
+        </div>
+
+        <div>
+          <ol class="pasos" id="pasos">
+            <li class="paso arbitro">
+              <p class="quien">Árbitro <span>Python</span></p>
+              <p class="nota">Reparte la tarjeta. El descriptor recibe la palabra secreta y las prohibidas; el adivinador no recibe nada, solo verá las pistas que pasen el control.</p>
+            </li>
+            <li class="paso descriptor">
+              <p class="quien">Descriptor <span>llama3.2:3b · 5,6 s</span></p>
+              <p class="dice">En el horizonte, un objeto grande y pesado se balancea suavemente en el agua, dejando un rastro de olas detrás de él. Los niños disfrutan viéndolo en el agua, y los adultos también lo encuentran emocionante.</p>
+            </li>
+            <li class="paso arbitro">
+              <p class="quien">Árbitro y vigilante</p>
+              <p class="nota">Las reglas no encuentran ninguna palabra prohibida ni forma suya. El vigilante tampoco ve trampa. La pista llega al adivinador.</p>
+            </li>
+            <li class="paso adivinador">
+              <p class="quien">Adivinador <span>qwen2.5:3b · 1,7 s</span></p>
+              <p><span class="dice">bote</span><span class="res ko">fallo, quedan 2 intentos</span></p>
+            </li>
+            <li class="paso descriptor">
+              <p class="quien">Descriptor <span>llama3.2:3b · 5,6 s</span></p>
+              <p class="nota">Recibe la respuesta fallida y da otra pista.</p>
+              <p class="dice">Algunos deportistas y personajes famosos han utilizado este objeto para demostrar habilidades impresionantes, y es común verlo en eventos de competición en todo el mundo.</p>
+            </li>
+            <li class="paso vigilante">
+              <p class="quien">Vigilante <span>gemma2:2b · 11,2 s</span></p>
+              <p class="dice"><span class="acusa">«La descripción menciona directamente el objeto "barco"». Confianza 0,9.</span></p>
+              <p class="nota"><strong style="color:var(--mal)">El árbitro descarta la acusación:</strong> la palabra citada no aparece en la pista. Sin esta comprobación, el turno habría acabado en una penalización injusta.</p>
+            </li>
+            <li class="paso adivinador final">
+              <p class="quien">Adivinador <span>qwen2.5:3b · 2,2 s</span></p>
+              <p><span class="dice">barco</span><span class="res ok">acierto, +1 punto</span></p>
+            </li>
+          </ol>
+          <div class="controles" id="controles" hidden>
+            <button type="button" id="siguiente">Siguiente paso</button>
+            <button type="button" class="sec" id="todo">Ver el turno completo</button>
+          </div>
+
+          <aside class="contraste" aria-labelledby="contraste-title">
+            <h3 id="contraste-title">La misma tarjeta, con otro descriptor</h3>
+            <p>En el equipo rojo, <code>qwen2.5:3b</code> describe y su primera pista fue esta:</p>
+            <blockquote>«Un <mark>barco</mark> es una embarcación de gran tamaño.»</blockquote>
+            <p>Las reglas lo detectan como coincidencia exacta con la palabra secreta. La pista nunca llega al adivinador, el turno termina y el equipo pierde un punto.</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="t-sec" aria-labelledby="roles-title">
+      <h2 id="roles-title">Quién sabe qué</h2>
+      <p class="intro-sec">Cada modelo recibe solo la información de su rol. No es una instrucción en el prompt: la función que llama al adivinador no tiene ningún parámetro por el que pueda llegarle la palabra secreta, y una prueba automática revisa todos sus prompts.</p>
+
+      <div class="roles">
+        <article class="rol">
+          <h3>Descriptor</h3>
+          <p class="modelo">llama3.2:3b o qwen2.5:3b</p>
+          <p>Describe la palabra en un máximo de 40 palabras. Si el adivinador falla, ve sus respuestas y lo vuelve a intentar.</p>
+          <dl><dt>Ve</dt><dd>La secreta, las prohibidas, sus pistas anteriores y los fallos del adivinador.</dd><dt class="no">No ve</dt><dd>El marcador ni a los otros equipos.</dd></dl>
+        </article>
+        <article class="rol">
+          <h3>Adivinador</h3>
+          <p class="modelo">qwen2.5:3b o llama3.2:3b</p>
+          <p>Responde con una sola palabra. Tiene tres intentos por tarjeta y no puede repetir una respuesta fallida.</p>
+          <dl><dt>Ve</dt><dd>Las pistas que han pasado el control y sus propias respuestas.</dd><dt class="no">No ve</dt><dd>La secreta, las prohibidas ni las pistas anuladas.</dd></dl>
+        </article>
+        <article class="rol">
+          <h3>Vigilante</h3>
+          <p class="modelo">gemma2:2b</p>
+          <p>Busca trampas que no se pueden comprobar letra a letra, como sinónimos evidentes o rimas. Responde en un JSON fijo.</p>
+          <dl><dt>Ve</dt><dd>La pista que revisa, la secreta y las prohibidas.</dd><dt class="no">No ve</dt><dd>Los equipos, el marcador ni las respuestas del adivinador.</dd></dl>
+        </article>
+      </div>
+      <div class="arbitro-nota">
+        <b>El árbitro</b>
+        <p>Es código determinista, no un modelo. Reparte tarjetas sin repetirlas, construye cada prompt, aplica las reglas, acepta o descarta lo que dice el vigilante, cuenta los intentos y lleva el marcador: +1 por acierto y −1 por trampa. Si un modelo devuelve algo inservible, tarda demasiado o Ollama se cae, la partida no se bloquea: el fallo queda registrado y el árbitro sigue.</p>
+      </div>
+    </section>
+
+    <section class="t-sec" aria-labelledby="trampas-title">
+      <h2 id="trampas-title">Cómo se detectan las trampas</h2>
+      <p class="intro-sec">En dos capas. Lo que se puede comprobar lo comprueba Python; el modelo vigilante solo opina sobre lo demás, y solo si aporta pruebas. Una pista con trampa nunca llega al adivinador.</p>
+
+      <div class="capas">
+        <div>
+          <h3>Primero, las reglas</h3>
+          <p>Antes de comparar, el texto se pasa a minúsculas y se le quitan tildes y signos. Después se revisan la secreta y cada prohibida.</p>
+          <table class="tipos">
+            <tbody>
+              <tr><th scope="row">Exacta</th><td><i>perro</i></td></tr>
+              <tr><th scope="row">Morfológica</th><td><i>perros, perra, perrito</i>: plurales, género y diminutivos</td></tr>
+              <tr><th scope="row">Derivada</th><td><i>perrera, ladra</i>: comparten raíz</td></tr>
+              <tr><th scope="row">Compuesta</th><td><i>paraguas</i> contiene <i>agua</i></td></tr>
+              <tr><th scope="row">Frase</th><td><i>echar de menos</i>, también en plural</td></tr>
+              <tr><th scope="row">Deletreo</th><td><i>p-e-r-r-o</i></td></tr>
+              <tr><th scope="row">Traducción</th><td><i>dog, gos, chien</i>: variantes guardadas en cada tarjeta</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3>Después, el vigilante</h3>
+          <p>Solo se le consulta si las reglas no encuentran nada. Busca sinónimos demasiado evidentes, faltas de ortografía a propósito, pistas de letras o rimas. El árbitro acepta su acusación solo si se cumplen tres condiciones:</p>
+          <ol class="condiciones">
+            <li><span><strong>El JSON es válido.</strong> Si no, se reintenta una vez y después no penaliza.</span></li>
+            <li><span><strong>La confianza llega al umbral,</strong> 0,8 por defecto.</span></li>
+            <li><span><strong>Lo que cita aparece en la pista, literalmente.</strong> Esta regla la añadí después de ver a <code>gemma2:2b</code> asegurar que una pista contenía «cumpleaños» cuando no era así.</span></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="t-sec" aria-labelledby="exp-title">
+      <h2 id="exp-title">Qué pasa al prohibir más palabras</h2>
+      <p class="intro-sec">La pregunta del experimento era cómo cambia el rendimiento con 3, 5 o 7 palabras prohibidas. Las mismas 30 tarjetas, los mismos equipos y la misma semilla en las tres condiciones, dos repeticiones: 360 turnos y unas dos horas en un portátil con 16 GB de RAM, todo en CPU.</p>
+
+      <div class="result-grid">
+        <div>
+          <h3>Se acierta menos</h3>
+          <p>De 3 a 7 prohibidas el acierto cae 12,5 puntos, y la diferencia es significativa (McNemar exacto, p = 0,008, 120 pares). Los pasos intermedios van en la misma dirección, pero con esta muestra no se distinguen del azar.</p>
+          <svg class="grafico" viewBox="0 0 440 178" role="img" aria-labelledby="g1-t g1-d">
+            <title id="g1-t">Porcentaje de palabras adivinadas según el número de prohibidas</title>
+            <desc id="g1-d">3 prohibidas: 27,5 % (IC 95 %: 20,3 a 36,1). 5 prohibidas: 20,8 % (14,5 a 29,0). 7 prohibidas: 15,0 % (9,7 a 22,5).</desc>
+            <!-- escala: 0–40 % sobre 300 px, empezando en x = 96 -->
+            <g stroke="#dcded5" stroke-width="1">
+              <line x1="96" y1="8" x2="96" y2="150"/><line x1="171" y1="8" x2="171" y2="150"/><line x1="246" y1="8" x2="246" y2="150"/><line x1="321" y1="8" x2="321" y2="150"/><line x1="396" y1="8" x2="396" y2="150"/>
+            </g>
+            <g font-size="12" fill="#5f635a" text-anchor="middle">
+              <text x="96" y="168">0 %</text><text x="171" y="168">10 %</text><text x="246" y="168">20 %</text><text x="321" y="168">30 %</text><text x="396" y="168">40 %</text>
+            </g>
+            <g font-size="14" fill="#20241f" text-anchor="end">
+              <text x="84" y="34">3 prohibidas</text><text x="84" y="80">5 prohibidas</text><text x="84" y="126">7 prohibidas</text>
+            </g>
+            <g fill="#5b3fd6">
+              <rect x="96" y="18" width="206.25" height="22" rx="2"/>
+              <rect x="96" y="64" width="156" height="22" rx="2" opacity=".78"/>
+              <rect x="96" y="110" width="112.5" height="22" rx="2" opacity=".56"/>
+            </g>
+            <g stroke="#20241f" stroke-width="1.5">
+              <line x1="248.25" y1="29" x2="366.75" y2="29"/><line x1="248.25" y1="23" x2="248.25" y2="35"/><line x1="366.75" y1="23" x2="366.75" y2="35"/>
+              <line x1="204.75" y1="75" x2="313.5" y2="75"/><line x1="204.75" y1="69" x2="204.75" y2="81"/><line x1="313.5" y1="69" x2="313.5" y2="81"/>
+              <line x1="168.75" y1="121" x2="264.75" y2="121"/><line x1="168.75" y1="115" x2="168.75" y2="127"/><line x1="264.75" y1="115" x2="264.75" y2="127"/>
+            </g>
+            <g font-size="14" font-weight="600" fill="#20241f">
+              <text x="374" y="34">27,5 %</text><text x="321" y="80">20,8 %</text><text x="272" y="126">15,0 %</text>
+            </g>
+          </svg>
+          <p class="pie-graf">Barras: acierto medio. Líneas: intervalo de confianza del 95 %.</p>
+        </div>
+
+        <div>
+          <h3>Pesa más quién describe</h3>
+          <p>La diferencia entre los dos descriptores es mayor que la que provoca cualquier lista de prohibidas. Este es el porcentaje de sus turnos en los que escribieron la palabra secreta tal cual:</p>
+          <div class="descriptor-vs" role="img" aria-label="qwen2.5:3b escribió la palabra secreta en el 64 % de sus turnos; llama3.2:3b, en el 19 %">
+            <div class="dv"><code>qwen2.5:3b</code><div class="pista"><span style="width:64%"></span></div><b>64 %</b></div>
+            <div class="dv"><code>llama3.2:3b</code><div class="pista"><span style="width:19%"></span></div><b>19 %</b></div>
+          </div>
+          <p class="pie-graf">116 de 180 turnos frente a 35 de 180.</p>
+
+          <h3 style="margin-top:40px">El vigilante, sin pruebas, no sirve</h3>
+          <p>Un modelo de 2 B acusa casi siempre. La regla de la cita literal es lo que evita que el experimento mida el ruido del juez.</p>
+          <ol class="embudo">
+            <li><div class="barra"><span style="width:100%"></span><em>Veredictos emitidos</em></div><b>269</b></li>
+            <li><div class="barra"><span style="width:72.9%"></span><em>Acusaciones de trampa</em></div><b>196</b></li>
+            <li><div class="barra claro" style="--w:7.1%"><span style="width:7.1%"></span><em>Aceptadas por el árbitro</em></div><b>19</b></li>
+            <li><div class="barra claro" style="--w:1%"><span style="width:1%"></span><em>Correctas tras revisarlas a mano</em></div><b>1</b></li>
+          </ol>
+        </div>
+      </div>
+
+      <p class="conclusion">Prohibir más palabras hace que los modelos usen alguna sin querer y, cuando no lo hacen, que describan peor. Pero lo que más decide una partida es qué modelo describe.</p>
+    </section>
+
+    <section class="t-sec" aria-labelledby="hecho-title">
+      <h2 id="hecho-title">Cómo está hecho</h2>
+      <p class="intro-sec">La interfaz web, la consola y el experimento usan exactamente el mismo motor de juego. Toda la configuración vive en un <code>config.json</code>, y cada partida se guarda turno a turno en JSON para no perder nada si el programa se interrumpe.</p>
+
+      <div class="hecho">
+        <div>
+          <h3>Módulos</h3>
+          <div class="modulos">
+            <div><code>game/</code><span>El árbitro: turnos, roles, puntuación y registro.</span></div>
+            <div><code>detection/</code><span>Reglas anti-trampa y vigilante semántico.</span></div>
+            <div><code>models/</code><span>Cliente de Ollama que solo acepta conexiones locales, y un cliente falso para las pruebas.</span></div>
+            <div><code>cards/</code><span>52 tarjetas escritas a mano, validador y generador de tarjetas nuevas.</span></div>
+            <div><code>experiment/</code><span>Diseño 3/5/7, estadística con intervalos de confianza y gráficos.</span></div>
+            <div><code>gui/</code><span>Interfaz en el navegador, servida desde el propio ordenador.</span></div>
+          </div>
+        </div>
+        <div>
+          <h3>Decisiones que lo sostienen</h3>
+          <ul class="lista">
+            <li><strong>Los modelos producen texto; Python decide.</strong> Ningún resultado depende de que un modelo se porte bien.</li>
+            <li><strong>Nada bloquea una partida.</strong> Respuestas vacías, sin formato, repetidas o que hablan de las reglas se descartan y se piden de nuevo con un prompt más estricto.</li>
+            <li><strong>89 pruebas que no necesitan Ollama.</strong> Usan clientes falsos con respuestas guionizadas y registran cada prompt, así que se pueden ejecutar en cualquier sitio.</li>
+            <li><strong>Experimento reproducible.</strong> Condiciones anidadas, orden aleatorio dentro de cada trío de turnos y reanudación si se corta.</li>
+          </ul>
+
+          <div class="local">
+            <h3>Por qué no hay demo online</h3>
+            <p>Los modelos se ejecutan en el ordenador de quien juega, y el programa rechaza a propósito cualquier servidor remoto. Para probarlo hace falta Python 3.11, Ollama y unos 6 GB de disco:</p>
+            <pre class="cmd"><span class="c"># descargar los tres modelos</span>
+ollama pull llama3.2:3b
+ollama pull qwen2.5:3b
+ollama pull gemma2:2b
+
+<span class="c"># abrir la interfaz en el navegador</span>
+python main.py gui</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="t-foot-nav" aria-label="Más">
+      <a class="scroll-link" href="/#proyectos"><span class="scroll-icon" aria-hidden="true">←</span> Volver a los proyectos</a>
+      <a class="btn-contact" href="mailto:victorpereirarigal00@gmail.com">Escríbeme <span aria-hidden="true">↗</span></a>
+    </nav>
+
+    <footer>
+      <span class="footer-note">Hecho con curiosidad en A Coruña <span>© 2026</span></span>
+      <div class="footer-links"><a href="/Victor_Pereira_CV.pdf" download>CV <span>↓</span></a><a href="mailto:victorpereirarigal00@gmail.com">Email <span>↗</span></a><a href="https://github.com/Rotciv1210" target="_blank" rel="noopener noreferrer">GitHub <span>↗</span></a><a href="https://www.linkedin.com/in/victor-pereira-rigal-969aa236b/" target="_blank" rel="noopener noreferrer">LinkedIn <span>↗</span></a></div>
+    </footer>
+  </main>
+
+  <script>
+    // Reproducción paso a paso del turno. Sin JavaScript se ve el turno completo.
+    (function () {
+      var pasos = Array.prototype.slice.call(document.querySelectorAll('#pasos .paso'));
+      var controles = document.getElementById('controles');
+      var btnSig = document.getElementById('siguiente');
+      var btnTodo = document.getElementById('todo');
+      if (!pasos.length || !controles) return;
+      var contraste = document.querySelector('.contraste');
+      var visibles = 2;
+      function pintar(animar) {
+        pasos.forEach(function (p, i) {
+          var ver = i < visibles;
+          if (ver && p.hidden && animar) { p.classList.add('nuevo'); }
+          p.hidden = !ver;
+        });
+        var completo = visibles >= pasos.length;
+        if (contraste) {
+          if (completo && contraste.hidden && animar) { contraste.classList.add('nuevo'); }
+          contraste.hidden = !completo;
+        }
+        if (completo) { controles.hidden = true; }
+      }
+      controles.hidden = false;
+      pintar(false);
+      btnSig.addEventListener('click', function () {
+        visibles++;
+        pintar(true);
+        if (visibles >= pasos.length) { pasos[pasos.length - 1].setAttribute('tabindex', '-1'); pasos[pasos.length - 1].focus({ preventScroll: true }); }
+      });
+      btnTodo.addEventListener('click', function () { visibles = pasos.length; pintar(true); });
+    })();
+  </script>
+</body>
+</html>
