@@ -166,6 +166,9 @@
     .local { margin-top: 30px; }
     .local p { margin-top: 8px; font-size: 15px; color: var(--body); line-height: 1.7; }
 
+    .t-acciones { margin-top: 30px; }
+    .enlace-repo { color: var(--violeta-oscuro); text-decoration: underline; text-underline-offset: 3px; }
+    .enlace-repo:hover { color: var(--accent-strong); }
     .t-foot-nav { padding: 40px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 
     @media (max-width: 860px) {
@@ -208,6 +211,7 @@
           <div><dt>Pruebas</dt><dd>89 con pytest</dd></div>
           <div><dt>Turnos medidos</dt><dd>360</dd></div>
         </dl>
+        <p class="t-acciones"><a class="btn-contact" href="https://github.com/Rotciv1210/modelosIA" target="_blank" rel="noopener noreferrer">Ver el código en GitHub <span aria-hidden="true">↗</span></a></p>
       </div>
       <div class="carta" aria-label="Tarjeta de ejemplo: palabra secreta barco; prohibidas mar, navegar y puerto">
         <div class="carta-cab"><small>Palabra secreta</small><b>barco</b></div>
@@ -427,8 +431,13 @@
 
           <div class="local">
             <h3>Por qué no hay demo online</h3>
-            <p>Los modelos se ejecutan en el ordenador de quien juega, y el programa rechaza a propósito cualquier servidor remoto. Para probarlo hace falta Python 3.11, Ollama y unos 6 GB de disco:</p>
-            <pre class="cmd"><span class="c"># descargar los tres modelos</span>
+            <p>Los modelos se ejecutan en el ordenador de quien juega, y el programa rechaza a propósito cualquier servidor remoto. El código está en <a class="enlace-repo" href="https://github.com/Rotciv1210/modelosIA" target="_blank" rel="noopener noreferrer">GitHub</a>; para probarlo hace falta Python 3.11, <a class="enlace-repo" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">Ollama</a> y unos 6 GB de disco:</p>
+            <pre class="cmd"><span class="c"># descargar el código</span>
+git clone https://github.com/Rotciv1210/modelosIA.git
+cd modelosIA/tabu_local
+pip install -r requirements.txt
+
+<span class="c"># descargar los tres modelos</span>
 ollama pull llama3.2:3b
 ollama pull qwen2.5:3b
 ollama pull gemma2:2b
@@ -442,7 +451,7 @@ python main.py gui</pre>
 
     <nav class="t-foot-nav" aria-label="Más">
       <a class="scroll-link" href="/#proyectos"><span class="scroll-icon" aria-hidden="true">←</span> Volver a los proyectos</a>
-      <a class="btn-contact" href="mailto:victorpereirarigal00@gmail.com">Escríbeme <span aria-hidden="true">↗</span></a>
+      <span class="hero-actions"><a class="btn-cv" href="https://github.com/Rotciv1210/modelosIA" target="_blank" rel="noopener noreferrer">Código en GitHub <span aria-hidden="true">↗</span></a><a class="btn-contact" href="mailto:victorpereirarigal00@gmail.com">Escríbeme <span aria-hidden="true">↗</span></a></span>
     </nav>
 
     <footer>
