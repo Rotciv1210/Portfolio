@@ -17,6 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/tema.js"></script>
   <style>
     :root {
       --violeta: #5b3fd6;      /* cabecera de la tarjeta, la misma que en la interfaz del juego */
@@ -171,6 +172,36 @@
     .enlace-repo:hover { color: var(--accent-strong); }
     .t-foot-nav { padding: 40px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
 
+
+    /* ---------- modo oscuro ---------- */
+    .grafico .g-grid { stroke: var(--line); }
+    .grafico .g-eje { fill: var(--muted); }
+    .grafico .g-txt { fill: var(--ink); }
+    .grafico .g-bigote { stroke: var(--ink); }
+    .grafico .g-barras { fill: var(--violeta); }
+    [data-theme="dark"] {
+      --violeta: #8470ee;
+      --violeta-oscuro: #b3a6f7;
+      --azul: #7aa2ff;
+      --bien: #7fcf9a;
+      --mal: #f08a80;
+      --vigia: #d2ae4a;
+    }
+    [data-theme="dark"] .carta-cab { background: #5b3fd6; }
+    [data-theme="dark"] .carta { border-color: #3a3550; box-shadow: 0 18px 40px -22px #000; }
+    [data-theme="dark"] .t-sec p code, [data-theme="dark"] .t-sec li code, [data-theme="dark"] .t-sec td code { background: #262a24; }
+    [data-theme="dark"] .paso .dice { background: #1c1f1b; }
+    [data-theme="dark"] .paso.vigilante .dice { border-color: #5c4e24; }
+    [data-theme="dark"] .contraste { background: #2a1d19; border-color: #5a3426; }
+    [data-theme="dark"] .arbitro-nota { background: #1c1f1b; color: var(--ink); border: 1px solid var(--line); }
+    [data-theme="dark"] .arbitro-nota p { color: var(--body); }
+    [data-theme="dark"] pre.cmd { background: #0c0d0b; border: 1px solid var(--line); }
+    [data-theme="dark"] .embudo .barra { background: #2b2a22; }
+    [data-theme="dark"] .embudo .barra:not(.claro) em { color: #1a1405; }
+    [data-theme="dark"] .dv .pista { background: #2a2d28; }
+    [data-theme="dark"] .condiciones li::before { border-color: #5c4e24; }
+    [data-theme="dark"] .controles button:hover { color: #fff; }
+
     @media (max-width: 860px) {
       .t-hero { grid-template-columns: 1fr; gap: 44px; padding: 52px 0 60px; }
       .t-hero .carta { max-width: 260px; margin: 0 auto; }
@@ -198,7 +229,13 @@
   <main class="wrap">
     <nav class="topbar t-top" aria-label="Navegación principal">
       <a class="monogram" href="/" aria-label="Víctor Pereira, volver al portfolio">VP<span>.</span></a>
-      <a class="back" href="/#proyectos"><span aria-hidden="true">←</span> Todos los proyectos</a>
+      <div class="topbar-right">
+        <a class="back" href="/#proyectos"><span aria-hidden="true">←</span> Todos los proyectos</a>
+        <button type="button" class="tema-btn" aria-pressed="false" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
+          <svg class="icono-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>
+          <svg class="icono-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+        </button>
+      </div>
     </nav>
 
     <header class="t-hero">
@@ -355,26 +392,26 @@
             <title id="g1-t">Porcentaje de palabras adivinadas según el número de prohibidas</title>
             <desc id="g1-d">3 prohibidas: 27,5 % (IC 95 %: 20,3 a 36,1). 5 prohibidas: 20,8 % (14,5 a 29,0). 7 prohibidas: 15,0 % (9,7 a 22,5).</desc>
             <!-- escala: 0–40 % sobre 300 px, empezando en x = 96 -->
-            <g stroke="#dcded5" stroke-width="1">
+            <g class="g-grid" stroke="#dcded5" stroke-width="1">
               <line x1="96" y1="8" x2="96" y2="150"/><line x1="171" y1="8" x2="171" y2="150"/><line x1="246" y1="8" x2="246" y2="150"/><line x1="321" y1="8" x2="321" y2="150"/><line x1="396" y1="8" x2="396" y2="150"/>
             </g>
-            <g font-size="12" fill="#5f635a" text-anchor="middle">
+            <g class="g-eje" font-size="12" fill="#5f635a" text-anchor="middle">
               <text x="96" y="168">0 %</text><text x="171" y="168">10 %</text><text x="246" y="168">20 %</text><text x="321" y="168">30 %</text><text x="396" y="168">40 %</text>
             </g>
-            <g font-size="14" fill="#20241f" text-anchor="end">
+            <g class="g-txt" font-size="14" fill="#20241f" text-anchor="end">
               <text x="84" y="34">3 prohibidas</text><text x="84" y="80">5 prohibidas</text><text x="84" y="126">7 prohibidas</text>
             </g>
-            <g fill="#5b3fd6">
+            <g class="g-barras" fill="#5b3fd6">
               <rect x="96" y="18" width="206.25" height="22" rx="2"/>
               <rect x="96" y="64" width="156" height="22" rx="2" opacity=".78"/>
               <rect x="96" y="110" width="112.5" height="22" rx="2" opacity=".56"/>
             </g>
-            <g stroke="#20241f" stroke-width="1.5">
+            <g class="g-bigote" stroke="#20241f" stroke-width="1.5">
               <line x1="248.25" y1="29" x2="366.75" y2="29"/><line x1="248.25" y1="23" x2="248.25" y2="35"/><line x1="366.75" y1="23" x2="366.75" y2="35"/>
               <line x1="204.75" y1="75" x2="313.5" y2="75"/><line x1="204.75" y1="69" x2="204.75" y2="81"/><line x1="313.5" y1="69" x2="313.5" y2="81"/>
               <line x1="168.75" y1="121" x2="264.75" y2="121"/><line x1="168.75" y1="115" x2="168.75" y2="127"/><line x1="264.75" y1="115" x2="264.75" y2="127"/>
             </g>
-            <g font-size="14" font-weight="600" fill="#20241f">
+            <g class="g-txt" font-size="14" font-weight="600" fill="#20241f">
               <text x="374" y="34">27,5 %</text><text x="321" y="80">20,8 %</text><text x="272" y="126">15,0 %</text>
             </g>
           </svg>

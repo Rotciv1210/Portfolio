@@ -114,3 +114,35 @@ a:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 4px; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* ---------- botón de tema ---------- */
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.tema-btn { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+.tema-btn:hover { border-color: var(--accent-strong); color: var(--accent-strong); }
+.tema-btn:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.tema-btn svg { width: 18px; height: 18px; }
+.tema-btn .icono-sol { display: none; }
+[data-theme="dark"] .tema-btn .icono-sol { display: block; }
+[data-theme="dark"] .tema-btn .icono-luna { display: none; }
+
+/* ---------- modo oscuro ---------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #141613;
+  --ink: #ecebe4;
+  --muted: #a3a69c;
+  --body: #bcbeb5;
+  --line: #2f332d;
+  --accent: #e0765c;
+  --accent-strong: #f08d73;
+  --green: #8fc29f;
+}
+[data-theme="dark"] .project:hover { background: #1c1f1b; }
+[data-theme="dark"] .tags li { border-color: #3b4a3f; }
+[data-theme="dark"] .scroll-link:hover .scroll-icon,
+[data-theme="dark"] .project:hover .project-arrow { color: #141613; }
+[data-theme="dark"] .btn-contact:hover { color: #141613; }
+[data-theme="dark"] .hero-photo { filter: saturate(.55) sepia(.06) contrast(.94) brightness(.92); }
+@media (max-width: 650px) {
+  .topbar-right { gap: 10px; }
+}
