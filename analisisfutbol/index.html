@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f5f4ef" />
+  <meta name="description" content="Análisis de datos en Python del rendimiento de los jugadores en las 5 grandes ligas europeas entre 2012 y 2026: goleadores, eficiencia por 90 minutos y regularidad." />
+  <meta property="og:type" content="article" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:url" content="https://www.vpereira.dev/analisisfutbol/" />
+  <meta property="og:title" content="¿Quién rinde más en el fútbol europeo? — Víctor Pereira" />
+  <meta property="og:description" content="1,9 millones de apariciones de Transfermarkt analizadas con Python: goleadores, eficiencia por 90 minutos y regularidad en las 5 grandes ligas." />
+  <meta name="twitter:card" content="summary" />
+  <title>¿Quién rinde más en el fútbol europeo? — Víctor Pereira</title>
+  <link rel="icon" href="/imagenes/favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/tema.js"></script>
+  <style>
+    :root {
+      --cesped: #2f6b45;       /* cabecera de la ficha */
+      --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100;  /* series de los gráficos */
+      --ficha: #fbf9f2;
+    }
+
+    /* ---------- cabecera ---------- */
+    .t-top .back { font: 12px var(--mono); color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+    .t-top .back:hover { color: var(--accent-strong); }
+    .t-hero { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 56px; align-items: center; padding: 72px 0 76px; border-bottom: 1px solid var(--line); }
+    .t-hero h1 { font: 600 clamp(42px, 6vw, 66px)/1.03 "Playfair Display", Georgia, serif; letter-spacing: -.045em; margin: 0; max-width: 13ch; }
+    .t-hero .lead { margin-top: 26px; max-width: 56ch; color: var(--body); font-size: 18px; line-height: 1.7; }
+    .t-hero .lead strong { color: var(--ink); font-weight: 600; }
+    .facts { display: grid; grid-template-columns: repeat(4, auto); justify-content: start; gap: 6px 34px; margin-top: 34px; }
+    .facts dt { font: 12px var(--mono); color: var(--muted); }
+    .facts dd { font-size: 15px; font-weight: 600; margin-top: 2px; }
+    .t-acciones { margin-top: 30px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* ---------- la ficha del jugador ---------- */
+    .ficha { width: 100%; max-width: 280px; background: var(--ficha); border: 1px solid #d9d4c4; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 0 #d9d4c4, 0 18px 40px -22px #1d3a2855; transform: rotate(-2deg); }
+    .ficha-cab { background: var(--cesped); color: #fff; padding: 18px 20px 16px; background-image: repeating-linear-gradient(90deg, transparent 0 28px, #ffffff10 28px 56px); }
+    .ficha-cab small { display: block; font: 12px var(--mono); opacity: .85; }
+    .ficha-cab b { display: block; font: 700 26px/1.1 "Playfair Display", Georgia, serif; margin-top: 6px; }
+    .ficha-cuerpo { padding: 22px 20px 6px; text-align: center; color: #20241f; }
+    .ficha-cuerpo .cifra { font: 700 74px/1 "Playfair Display", Georgia, serif; letter-spacing: -.04em; }
+    .ficha-cuerpo p { font-size: 14px; color: #555950; margin-top: 8px; }
+    .ficha-datos { display: grid; grid-template-columns: repeat(3, 1fr); margin: 18px 16px 16px; border-top: 1px dashed #ddd6c3; padding-top: 12px; text-align: center; }
+    .ficha-datos b { display: block; font-size: 17px; color: #20241f; }
+    .ficha-datos span { font: 11px var(--mono); color: #5f635a; }
+
+    /* ---------- secciones ---------- */
+    .t-sec { padding: 72px 0; border-bottom: 1px solid var(--line); }
+    .t-sec > h2 { font: 600 36px/1.12 "Playfair Display", Georgia, serif; letter-spacing: -.03em; }
+    .t-sec .intro-sec { margin-top: 14px; max-width: 64ch; color: var(--body); font-size: 17px; line-height: 1.75; }
+    .t-sec .intro-sec strong { color: var(--ink); font-weight: 600; }
+    .t-sec code { font: 14px var(--mono); background: #e9e8e0; padding: 1px 5px; border-radius: 3px; color: var(--ink); }
+    .nota-graf { font: 12px var(--mono); color: var(--muted); margin-top: 10px; }
+    .desliza { display: none; font: 12px var(--mono); color: var(--muted); margin-top: 18px; }
+    .leyenda { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 28px; font-size: 14px; color: var(--body); }
+    .leyenda span { display: inline-flex; align-items: center; gap: 7px; }
+    .leyenda i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .leyenda i.linea { height: 3px; border-radius: 2px; width: 18px; }
+
+    /* ---------- embudo de datos ---------- */
+    .embudo { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 38px; border-top: 2px solid var(--ink); }
+    .embudo div { padding: 20px 20px 0 0; }
+    .embudo div + div { padding-left: 20px; border-left: 1px solid var(--line); }
+    .embudo b { display: block; font: 600 30px/1.1 "Playfair Display", Georgia, serif; letter-spacing: -.02em; }
+    .embudo p { margin-top: 8px; font-size: 15px; color: var(--body); line-height: 1.6; }
+
+    /* ---------- gráficos ---------- */
+    .grafico { display: block; width: 100%; height: auto; margin-top: 26px; overflow: visible; }
+    .grafico text { font-family: "DM Sans", sans-serif; font-size: 14px; }
+    .grafico .g-grid line { stroke: var(--line); stroke-width: 1; }
+    .grafico .g-eje text, .grafico text.g-eje-tit { fill: var(--muted); font: 12px var(--mono); }
+    .grafico .g-txt { fill: var(--ink); }
+    .grafico .g-valor { fill: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .grafico .g-barra { fill: var(--green); }
+    .grafico .g-pista { fill: #e9e8e0; }
+    .grafico .g-hit { fill: transparent; }
+    .grafico .g-fila:hover .g-hit { fill: #eeede6; }
+    .grafico .g-mediana { stroke: var(--accent-strong); stroke-width: 2; stroke-dasharray: 5 4; }
+    .grafico .s-goles { fill: var(--c1); }
+    .grafico .s-asis { fill: var(--c2); }
+    .grafico .g-dentro { fill: #fff; font-size: 13px; font-weight: 600; }
+    .grafico .s-asis + .g-dentro + .g-dentro { fill: #20241f; }
+    .serie path { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+    .serie circle { stroke: var(--paper); stroke-width: 2; cursor: default; }
+    .serie circle:hover { r: 7; }
+    .serie .g-fin { font-weight: 600; fill: var(--ink); }
+    .c1 path { stroke: var(--c1); } .c1 circle { fill: var(--c1); }
+    .c2 path { stroke: var(--c2); } .c2 circle { fill: var(--c2); }
+    .c3 path { stroke: var(--c3); } .c3 circle { fill: var(--c3); }
+    .c4 path { stroke: var(--c4); } .c4 circle { fill: var(--c4); }
+    .mediana-leyenda i { background: none; border-top: 2px dashed var(--accent-strong); height: 0; width: 18px; border-radius: 0; }
+
+    .t-sec > .dos-col { margin-top: 30px; }
+    .dos-col > div > :first-child { margin-top: 0; }
+    .dos-col > * { min-width: 0; }
+    .dos-col { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 56px; align-items: start; }
+    .apunte { margin-bottom: 22px; padding: 20px 22px; border-left: 3px solid var(--green); background: #eeede6; border-radius: 0 4px 4px 0; }
+    .apunte h3 { font-size: 17px; font-weight: 600; }
+    .apunte p { margin-top: 8px; color: var(--body); font-size: 15px; line-height: 1.65; }
+    .apunte p strong { color: var(--ink); }
+
+    /* ---------- pestañas de ligas ---------- */
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 30px; }
+    .tabs button { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 13px var(--mono); cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
+    .tabs button:hover { border-color: var(--accent-strong); }
+    .tabs button[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .tabs button:focus-visible, .panel:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+    .panel { margin-top: 22px; }
+    .js .panel-tit { display: none; }
+    .panel-tit { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .pichichis { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .pichichis th, .pichichis td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); }
+    .pichichis thead th { font: 12px var(--mono); color: var(--muted); font-weight: 400; }
+    .pichichis tbody th { font: 13px var(--mono); color: var(--muted); font-weight: 400; width: 110px; }
+    .pichichis td:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; width: 60px; padding-right: 0; }
+    .empate { font: 11px var(--mono); color: var(--accent-strong); border: 1px solid currentColor; border-radius: 2px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; }
+    .ranking { list-style: none; margin-top: 14px; }
+    .ranking li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+    .ranking b { font-variant-numeric: tabular-nums; }
+
+    /* ---------- decisiones ---------- */
+    .decisiones { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 36px; border-top: 2px solid var(--ink); }
+    .decision { padding: 22px 24px 4px 0; }
+    .decision + .decision { padding-left: 24px; border-left: 1px solid var(--line); }
+    .decision .num { font: 12px var(--mono); color: var(--accent-strong); }
+    .decision h3 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; margin-top: 4px; }
+    .decision p { margin-top: 10px; font-size: 15px; color: var(--body); line-height: 1.65; }
+    .limites { margin-top: 40px; display: grid; grid-template-columns: 150px 1fr; gap: 20px; padding: 20px 24px; background: var(--ink); color: var(--paper); border-radius: 4px; }
+    .limites b { font: 600 20px "Playfair Display", Georgia, serif; }
+    .limites ul { padding-left: 18px; color: #d9dbd2; font-size: 15px; line-height: 1.7; }
+    .conclusion { margin-top: 48px; font: 600 24px/1.45 "Playfair Display", Georgia, serif; letter-spacing: -.01em; max-width: 46ch; }
+
+    /* ---------- cómo está hecho ---------- */
+    .pasos-proc { list-style: none; counter-reset: p; margin-top: 14px; }
+    .pasos-proc li { counter-increment: p; display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.6; color: var(--body); }
+    .pasos-proc li::before { content: counter(p); font: 500 12px var(--mono); color: var(--green); border: 1px solid #cbd5c8; border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; }
+    .pasos-proc strong { color: var(--ink); font-weight: 600; }
+    .dos-col h3 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+    pre.cmd { margin-top: 14px; background: var(--ink); color: #e9ebe3; border-radius: 4px; padding: 16px 18px; font: 13px/1.8 var(--mono); overflow-x: auto; }
+    pre.cmd .c { color: #9aa093; }
+    .enlace { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+    .enlace:hover { color: var(--accent-strong); }
+    .t-foot-nav { padding: 40px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+    /* ---------- modo oscuro ---------- */
+    [data-theme="dark"] { --cesped: #2f6b45; --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; }
+    [data-theme="dark"] .ficha { border-color: #2f3a31; box-shadow: 0 18px 40px -22px #000; }
+    [data-theme="dark"] .t-sec code { background: #262a24; }
+    [data-theme="dark"] .grafico .g-pista { fill: #22261f; }
+    [data-theme="dark"] .grafico .g-fila:hover .g-hit { fill: #1c1f1b; }
+    [data-theme="dark"] .apunte { background: #1c1f1b; }
+    [data-theme="dark"] .limites { background: #1c1f1b; color: var(--ink); border: 1px solid var(--line); }
+    [data-theme="dark"] .limites ul { color: var(--body); }
+    [data-theme="dark"] pre.cmd { background: #0c0d0b; border: 1px solid var(--line); }
+    [data-theme="dark"] .pasos-proc li::before { border-color: #3b4a3f; }
+
+    @media (max-width: 860px) {
+      .t-hero { grid-template-columns: 1fr; gap: 44px; padding: 52px 0 60px; }
+      .t-hero .ficha { margin: 0 auto; max-width: 260px; }
+      .facts { grid-template-columns: repeat(2, auto); }
+      .embudo { grid-template-columns: 1fr 1fr; }
+      .embudo div:nth-child(3) { padding-left: 0; border-left: 0; }
+      .embudo div:nth-child(n+3) { border-top: 1px solid var(--line); margin-top: 18px; }
+      .dos-col { grid-template-columns: minmax(0, 1fr); gap: 44px; }
+      .decisiones { grid-template-columns: 1fr; }
+      .decision + .decision { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+      .decision { padding-bottom: 18px; }
+      .limites { grid-template-columns: 1fr; gap: 6px; }
+    }
+    @media (max-width: 560px) {
+      .t-sec { padding: 54px 0; }
+      .t-sec > h2 { font-size: 30px; }
+      .t-hero .lead { font-size: 17px; }
+      .grafico-ancho { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .grafico-ancho .grafico { min-width: 720px; }
+      .grafico-ancho.estrecho .grafico { min-width: 520px; }
+      .desliza { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <nav class="topbar t-top" aria-label="Navegación principal">
+      <a class="monogram" href="/" aria-label="Víctor Pereira, volver al portfolio">VP<span>.</span></a>
+      <div class="topbar-right">
+        <a class="back" href="/#proyectos"><span aria-hidden="true">←</span> Todos los proyectos</a>
+        <button type="button" class="tema-btn" aria-pressed="false" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
+          <svg class="icono-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg>
+          <svg class="icono-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <header class="t-hero">
+      <div>
+        <h1>¿Quién rinde más en el fútbol europeo?</h1>
+        <p class="lead">Analicé con Python <strong>1,9 millones de apariciones</strong> de jugadores registradas en Transfermarkt para medir quién marca, quién asiste y quién lo hace con más eficiencia en las cinco grandes ligas europeas, desde 2012 hasta 2026.</p>
+        <dl class="facts">
+          <div><dt>Herramientas</dt><dd>Python · pandas</dd></div>
+          <div><dt>Periodo</dt><dd>14 temporadas</dd></div>
+          <div><dt>Jugadores</dt><dd>10.596</dd></div>
+          <div><dt>Partidos</dt><dd>25.239</dd></div>
+        </dl>
+        <p class="t-acciones"><a class="btn-contact" href="https://github.com/Rotciv1210/analisis-futbol-transfermarkt" target="_blank" rel="noopener noreferrer">Ver el notebook en GitHub <span aria-hidden="true">↗</span></a></p>
+      </div>
+      <div class="ficha" role="img" aria-label="Ficha: Lionel Messi, 1,44 goles más asistencias por 90 minutos; 327 goles y 165 asistencias en 364 partidos">
+        <div class="ficha-cab"><small>El más eficiente · 2012–2026</small><b>Lionel Messi</b></div>
+        <div class="ficha-cuerpo">
+          <div class="cifra">1,44</div>
+          <p>goles + asistencias<br>por cada 90 minutos</p>
+        </div>
+        <div class="ficha-datos">
+          <div><b>327</b><span>goles</span></div>
+          <div><b>165</b><span>asist.</span></div>
+          <div><b>364</b><span>partidos</span></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="t-sec" aria-labelledby="datos-title">
+      <h2 id="datos-title">De dónde salen los datos</h2>
+      <p class="intro-sec">El dataset público <a class="enlace" href="https://www.kaggle.com/datasets/davidcariboo/player-scores" target="_blank" rel="noopener noreferrer">Football Data from Transfermarkt</a> guarda una fila por cada vez que un jugador sale al campo: minutos, goles, asistencias y tarjetas. Antes de analizar nada, lo limpié y lo acoté para comparar en igualdad de condiciones.</p>
+      <div class="embudo">
+        <div><b>1.894.350</b><p>apariciones en 48 competiciones: ligas, copas y torneos europeos.</p></div>
+        <div><b>5 ligas</b><p>LaLiga, Premier League, Serie A, Bundesliga y Ligue 1. Fuera copas y Europa.</p></div>
+        <div><b>726.822</b><p>apariciones con minutos jugados que entran en el análisis.</p></div>
+        <div><b>10.596</b><p>jugadores distintos entre 2012/13 y 2025/26.</p></div>
+      </div>
+    </section>
+
+    <section class="t-sec" aria-labelledby="totales-title">
+      <h2 id="totales-title">Los que más suman</h2>
+      <p class="intro-sec">Lewandowski es el máximo goleador del periodo con 365 goles, pero <strong>Messi lidera en goles más asistencias</strong> porque también es el que más asistencias ha dado: 165.</p>
+      <div class="leyenda" aria-hidden="true"><span><i style="background:var(--c1)"></i>Goles</span><span><i style="background:var(--c2)"></i>Asistencias</span></div>
+      <p class="desliza" aria-hidden="true">Desliza para ver el gráfico completo →</p>
+      <div class="grafico-ancho"><svg class="grafico" viewBox="0 0 920 430" role="img" aria-labelledby="to-t to-d">
+<title id="to-t">Los 10 jugadores con más goles más asistencias</title>
+<desc id="to-d">Lionel Messi: 327 goles y 165 asistencias. Robert Lewandowski: 365 goles y 81 asistencias. Harry Kane: 311 goles y 73 asistencias. Cristiano Ronaldo: 299 goles y 80 asistencias. Mohamed Salah: 228 goles y 120 asistencias. Luis Suárez: 230 goles y 110 asistencias. Kylian Mbappé: 247 goles y 82 asistencias. Pierre-Emerick Aubameyang: 224 goles y 65 asistencias. Romelu Lukaku: 206 goles y 73 asistencias. Alexandre Lacazette: 209 goles y 67 asistencias.</desc>
+<g class="g-grid">
+<line x1="210.0" y1="6" x2="210.0" y2="400"/>
+<line x1="340.0" y1="6" x2="340.0" y2="400"/>
+<line x1="470.0" y1="6" x2="470.0" y2="400"/>
+<line x1="600.0" y1="6" x2="600.0" y2="400"/>
+<line x1="730.0" y1="6" x2="730.0" y2="400"/>
+<line x1="860.0" y1="6" x2="860.0" y2="400"/>
+</g><g class="g-eje" text-anchor="middle">
+<text x="210.0" y="420">0</text>
+<text x="340.0" y="420">100</text>
+<text x="470.0" y="420">200</text>
+<text x="600.0" y="420">300</text>
+<text x="730.0" y="420">400</text>
+<text x="860.0" y="420">500</text>
+</g>
+<g class="g-fila"><title>Lionel Messi: 327 goles + 165 asistencias = 492</title><rect class="g-hit" x="0" y="4" width="920" height="38"/><text class="g-txt" x="196" y="26" text-anchor="end">Lionel Messi</text><rect class="s-goles" x="210" y="10" width="425.1" height="22" rx="3"/><rect class="s-asis" x="637.1" y="10" width="214.5" height="22" rx="3"/><text class="g-dentro" x="220" y="26">327</text><text class="g-dentro" x="645.1" y="26">165</text><text class="g-valor" x="859.6" y="26">492</text></g>
+<g class="g-fila"><title>Robert Lewandowski: 365 goles + 81 asistencias = 446</title><rect class="g-hit" x="0" y="42" width="920" height="38"/><text class="g-txt" x="196" y="64" text-anchor="end">Robert Lewandowski</text><rect class="s-goles" x="210" y="48" width="474.5" height="22" rx="3"/><rect class="s-asis" x="686.5" y="48" width="105.3" height="22" rx="3"/><text class="g-dentro" x="220" y="64">365</text><text class="g-dentro" x="694.5" y="64">81</text><text class="g-valor" x="799.8" y="64">446</text></g>
+<g class="g-fila"><title>Harry Kane: 311 goles + 73 asistencias = 384</title><rect class="g-hit" x="0" y="80" width="920" height="38"/><text class="g-txt" x="196" y="102" text-anchor="end">Harry Kane</text><rect class="s-goles" x="210" y="86" width="404.3" height="22" rx="3"/><rect class="s-asis" x="616.3" y="86" width="94.9" height="22" rx="3"/><text class="g-dentro" x="220" y="102">311</text><text class="g-dentro" x="624.3" y="102">73</text><text class="g-valor" x="719.2" y="102">384</text></g>
+<g class="g-fila"><title>Cristiano Ronaldo: 299 goles + 80 asistencias = 379</title><rect class="g-hit" x="0" y="118" width="920" height="38"/><text class="g-txt" x="196" y="140" text-anchor="end">Cristiano Ronaldo</text><rect class="s-goles" x="210" y="124" width="388.7" height="22" rx="3"/><rect class="s-asis" x="600.7" y="124" width="104.0" height="22" rx="3"/><text class="g-dentro" x="220" y="140">299</text><text class="g-dentro" x="608.7" y="140">80</text><text class="g-valor" x="712.7" y="140">379</text></g>
+<g class="g-fila"><title>Mohamed Salah: 228 goles + 120 asistencias = 348</title><rect class="g-hit" x="0" y="156" width="920" height="38"/><text class="g-txt" x="196" y="178" text-anchor="end">Mohamed Salah</text><rect class="s-goles" x="210" y="162" width="296.4" height="22" rx="3"/><rect class="s-asis" x="508.4" y="162" width="156.0" height="22" rx="3"/><text class="g-dentro" x="220" y="178">228</text><text class="g-dentro" x="516.4" y="178">120</text><text class="g-valor" x="672.4" y="178">348</text></g>
+<g class="g-fila"><title>Luis Suárez: 230 goles + 110 asistencias = 340</title><rect class="g-hit" x="0" y="194" width="920" height="38"/><text class="g-txt" x="196" y="216" text-anchor="end">Luis Suárez</text><rect class="s-goles" x="210" y="200" width="299.0" height="22" rx="3"/><rect class="s-asis" x="511.0" y="200" width="143.0" height="22" rx="3"/><text class="g-dentro" x="220" y="216">230</text><text class="g-dentro" x="519.0" y="216">110</text><text class="g-valor" x="662.0" y="216">340</text></g>
+<g class="g-fila"><title>Kylian Mbappé: 247 goles + 82 asistencias = 329</title><rect class="g-hit" x="0" y="232" width="920" height="38"/><text class="g-txt" x="196" y="254" text-anchor="end">Kylian Mbappé</text><rect class="s-goles" x="210" y="238" width="321.1" height="22" rx="3"/><rect class="s-asis" x="533.1" y="238" width="106.6" height="22" rx="3"/><text class="g-dentro" x="220" y="254">247</text><text class="g-dentro" x="541.1" y="254">82</text><text class="g-valor" x="647.7" y="254">329</text></g>
+<g class="g-fila"><title>Pierre-Emerick Aubameyang: 224 goles + 65 asistencias = 289</title><rect class="g-hit" x="0" y="270" width="920" height="38"/><text class="g-txt" x="196" y="292" text-anchor="end">Pierre-Emerick Aubameyang</text><rect class="s-goles" x="210" y="276" width="291.2" height="22" rx="3"/><rect class="s-asis" x="503.2" y="276" width="84.5" height="22" rx="3"/><text class="g-dentro" x="220" y="292">224</text><text class="g-dentro" x="511.2" y="292">65</text><text class="g-valor" x="595.7" y="292">289</text></g>
+<g class="g-fila"><title>Romelu Lukaku: 206 goles + 73 asistencias = 279</title><rect class="g-hit" x="0" y="308" width="920" height="38"/><text class="g-txt" x="196" y="330" text-anchor="end">Romelu Lukaku</text><rect class="s-goles" x="210" y="314" width="267.8" height="22" rx="3"/><rect class="s-asis" x="479.8" y="314" width="94.9" height="22" rx="3"/><text class="g-dentro" x="220" y="330">206</text><text class="g-dentro" x="487.8" y="330">73</text><text class="g-valor" x="582.7" y="330">279</text></g>
+<g class="g-fila"><title>Alexandre Lacazette: 209 goles + 67 asistencias = 276</title><rect class="g-hit" x="0" y="346" width="920" height="38"/><text class="g-txt" x="196" y="368" text-anchor="end">Alexandre Lacazette</text><rect class="s-goles" x="210" y="352" width="271.7" height="22" rx="3"/><rect class="s-asis" x="483.7" y="352" width="87.1" height="22" rx="3"/><text class="g-dentro" x="220" y="368">209</text><text class="g-dentro" x="491.7" y="368">67</text><text class="g-valor" x="578.8" y="368">276</text></g>
+</svg></div>
+      <p class="nota-graf">Solo partidos de liga, 2012/13–2025/26. Pasa el ratón por una barra para ver el detalle.</p>
+    </section>
+
+    <section class="t-sec" aria-labelledby="eficiencia-title">
+      <h2 id="eficiencia-title">Los más eficientes</h2>
+      <p class="intro-sec">Los totales premian a quien más juega. Para comparar de verdad, calculé <strong>goles más asistencias por cada 90 minutos</strong>, solo entre los 1.977 jugadores con al menos 9.000 minutos, unos 100 partidos completos.</p>
+      <div class="dos-col">
+        <div>
+          <div class="leyenda" aria-hidden="true"><span class="mediana-leyenda"><i></i>Mediana de esos 1.977 jugadores: 0,15</span></div>
+          <p class="desliza" aria-hidden="true">Desliza para ver el gráfico completo →</p>
+          <div class="grafico-ancho estrecho"><svg class="grafico" viewBox="0 0 600 430" role="img" aria-labelledby="ef-t ef-d">
+<title id="ef-t">Los 10 jugadores más eficientes en goles más asistencias por 90 minutos</title>
+<desc id="ef-d">Lionel Messi: 1,44. Kylian Mbappé: 1,25. Cristiano Ronaldo: 1,23. Zlatan Ibrahimović: 1,19. Erling Haaland: 1,18. Luis Suárez: 1,17. Neymar: 1,15. Robert Lewandowski: 1,10. Sergio Agüero: 1,07. Harry Kane: 1,00. Mediana de los 1.977 jugadores con al menos 9.000 minutos: 0,15.</desc>
+<g class="g-grid">
+<line x1="150.0" y1="6" x2="150.0" y2="400"/>
+<line x1="250.0" y1="6" x2="250.0" y2="400"/>
+<line x1="350.0" y1="6" x2="350.0" y2="400"/>
+<line x1="450.0" y1="6" x2="450.0" y2="400"/>
+<line x1="550.0" y1="6" x2="550.0" y2="400"/>
+</g><g class="g-eje" text-anchor="middle">
+<text x="150.0" y="420">0,0</text>
+<text x="250.0" y="420">0,4</text>
+<text x="350.0" y="420">0,8</text>
+<text x="450.0" y="420">1,2</text>
+<text x="550.0" y="420">1,6</text>
+</g>
+<g class="g-fila"><title>Lionel Messi: 1,44 G+A por 90 · 327 goles y 165 asistencias en 30.667 minutos</title><rect class="g-hit" x="0" y="4" width="600" height="38"/><text class="g-txt" x="136" y="26" text-anchor="end">Lionel Messi</text><rect class="g-barra g-destacada" x="150" y="10" width="361.0" height="22" rx="3"/><text class="g-valor" x="519.0" y="26">1,44</text></g>
+<g class="g-fila"><title>Kylian Mbappé: 1,25 G+A por 90 · 247 goles y 82 asistencias en 23.728 minutos</title><rect class="g-hit" x="0" y="42" width="600" height="38"/><text class="g-txt" x="136" y="64" text-anchor="end">Kylian Mbappé</text><rect class="g-barra" x="150" y="48" width="312.0" height="22" rx="3"/><text class="g-valor" x="470.0" y="64">1,25</text></g>
+<g class="g-fila"><title>Cristiano Ronaldo: 1,23 G+A por 90 · 299 goles y 80 asistencias en 27.801 minutos</title><rect class="g-hit" x="0" y="80" width="600" height="38"/><text class="g-txt" x="136" y="102" text-anchor="end">Cristiano Ronaldo</text><rect class="g-barra" x="150" y="86" width="306.7" height="22" rx="3"/><text class="g-valor" x="464.7" y="102">1,23</text></g>
+<g class="g-fila"><title>Zlatan Ibrahimović: 1,19 G+A por 90 · 164 goles y 59 asistencias en 16.852 minutos</title><rect class="g-hit" x="0" y="118" width="600" height="38"/><text class="g-txt" x="136" y="140" text-anchor="end">Zlatan Ibrahimović</text><rect class="g-barra" x="150" y="124" width="297.7" height="22" rx="3"/><text class="g-valor" x="455.7" y="140">1,19</text></g>
+<g class="g-fila"><title>Erling Haaland: 1,18 G+A por 90 · 174 goles y 42 asistencias en 16.425 minutos</title><rect class="g-hit" x="0" y="156" width="600" height="38"/><text class="g-txt" x="136" y="178" text-anchor="end">Erling Haaland</text><rect class="g-barra" x="150" y="162" width="295.9" height="22" rx="3"/><text class="g-valor" x="453.9" y="178">1,18</text></g>
+<g class="g-fila"><title>Luis Suárez: 1,17 G+A por 90 · 230 goles y 110 asistencias en 26.200 minutos</title><rect class="g-hit" x="0" y="194" width="600" height="38"/><text class="g-txt" x="136" y="216" text-anchor="end">Luis Suárez</text><rect class="g-barra" x="150" y="200" width="292.0" height="22" rx="3"/><text class="g-valor" x="450.0" y="216">1,17</text></g>
+<g class="g-fila"><title>Neymar: 1,15 G+A por 90 · 150 goles y 99 asistencias en 19.408 minutos</title><rect class="g-hit" x="0" y="232" width="600" height="38"/><text class="g-txt" x="136" y="254" text-anchor="end">Neymar</text><rect class="g-barra" x="150" y="238" width="288.7" height="22" rx="3"/><text class="g-valor" x="446.7" y="254">1,15</text></g>
+<g class="g-fila"><title>Robert Lewandowski: 1,10 G+A por 90 · 365 goles y 81 asistencias en 36.568 minutos</title><rect class="g-hit" x="0" y="270" width="600" height="38"/><text class="g-txt" x="136" y="292" text-anchor="end">Robert Lewandowski</text><rect class="g-barra" x="150" y="276" width="274.4" height="22" rx="3"/><text class="g-valor" x="432.4" y="292">1,10</text></g>
+<g class="g-fila"><title>Sergio Agüero: 1,07 G+A por 90 · 161 goles y 45 asistencias en 17.268 minutos</title><rect class="g-hit" x="0" y="308" width="600" height="38"/><text class="g-txt" x="136" y="330" text-anchor="end">Sergio Agüero</text><rect class="g-barra" x="150" y="314" width="268.4" height="22" rx="3"/><text class="g-valor" x="426.4" y="330">1,07</text></g>
+<g class="g-fila"><title>Harry Kane: 1,00 G+A por 90 · 311 goles y 73 asistencias en 34.569 minutos</title><rect class="g-hit" x="0" y="346" width="600" height="38"/><text class="g-txt" x="136" y="368" text-anchor="end">Harry Kane</text><rect class="g-barra" x="150" y="352" width="249.9" height="22" rx="3"/><text class="g-valor" x="407.9" y="368">1,00</text></g>
+<line class="g-mediana" x1="186.8" y1="6" x2="186.8" y2="400"/>
+</svg></div>
+        </div>
+        <div>
+          <div class="apunte">
+            <h3>Casi diez veces la mediana</h3>
+            <p>Messi produce <strong>1,44</strong> goles o asistencias por partido completo. El jugador típico de ese grupo, 0,15. La mediana es baja porque el grupo incluye defensas y porteros.</p>
+          </div>
+          <div class="apunte">
+            <h3>Haaland ya está ahí</h3>
+            <p>Es quinto, con <strong>1,18</strong>, jugando casi la mitad de minutos que Messi. Su muestra es más corta, así que la cifra todavía puede moverse.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="t-sec" aria-labelledby="pichichi-title">
+      <h2 id="pichichi-title">Máximos goleadores, liga a liga</h2>
+      <p class="intro-sec">El máximo goleador de cada liga en cada temporada. Si hubo empate en el primer puesto, aparecen todos los empatados.</p>
+      <div class="dos-col">
+        <div><div class="tabs" role="tablist" aria-label="Liga" hidden><button type="button" role="tab" id="tab-0" aria-controls="panel-0" aria-selected="true">LaLiga</button><button type="button" role="tab" id="tab-1" aria-controls="panel-1" aria-selected="false" tabindex="-1">Premier League</button><button type="button" role="tab" id="tab-2" aria-controls="panel-2" aria-selected="false" tabindex="-1">Serie A</button><button type="button" role="tab" id="tab-3" aria-controls="panel-3" aria-selected="false" tabindex="-1">Bundesliga</button><button type="button" role="tab" id="tab-4" aria-controls="panel-4" aria-selected="false" tabindex="-1">Ligue 1</button></div><div class="panel" role="tabpanel" id="panel-0" aria-labelledby="tab-0" tabindex="0"><h3 class="panel-tit">LaLiga</h3><table class="pichichis"><thead><tr><th scope="col">Temporada</th><th scope="col">Máximo goleador</th><th scope="col">Goles</th></tr></thead><tbody><tr><th scope="row">2012/13</th><td>Lionel Messi</td><td>46</td></tr><tr><th scope="row">2013/14</th><td>Cristiano Ronaldo</td><td>31</td></tr><tr><th scope="row">2014/15</th><td>Cristiano Ronaldo</td><td>48</td></tr><tr><th scope="row">2015/16</th><td>Luis Suárez</td><td>40</td></tr><tr><th scope="row">2016/17</th><td>Lionel Messi</td><td>37</td></tr><tr><th scope="row">2017/18</th><td>Lionel Messi</td><td>34</td></tr><tr><th scope="row">2018/19</th><td>Lionel Messi</td><td>36</td></tr><tr><th scope="row">2019/20</th><td>Lionel Messi</td><td>25</td></tr><tr><th scope="row">2020/21</th><td>Lionel Messi</td><td>30</td></tr><tr><th scope="row">2021/22</th><td>Karim Benzema</td><td>27</td></tr><tr><th scope="row">2022/23</th><td>Robert Lewandowski</td><td>23</td></tr><tr><th scope="row">2023/24</th><td>Artem Dovbyk</td><td>24</td></tr><tr><th scope="row">2024/25</th><td>Kylian Mbappé</td><td>31</td></tr><tr><th scope="row">2025/26</th><td>Kylian Mbappé</td><td>25</td></tr></tbody></table></div><div class="panel" role="tabpanel" id="panel-1" aria-labelledby="tab-1" tabindex="0"><h3 class="panel-tit">Premier League</h3><table class="pichichis"><thead><tr><th scope="col">Temporada</th><th scope="col">Máximo goleador</th><th scope="col">Goles</th></tr></thead><tbody><tr><th scope="row">2012/13</th><td>Robin van Persie</td><td>26</td></tr><tr><th scope="row">2013/14</th><td>Luis Suárez</td><td>31</td></tr><tr><th scope="row">2014/15</th><td>Sergio Agüero</td><td>26</td></tr><tr><th scope="row">2015/16</th><td>Harry Kane</td><td>25</td></tr><tr><th scope="row">2016/17</th><td>Harry Kane</td><td>29</td></tr><tr><th scope="row">2017/18</th><td>Mohamed Salah</td><td>32</td></tr><tr><th scope="row">2018/19</th><td>Mohamed Salah / Pierre-Emerick Aubameyang / Sadio Mané <span class="empate">empate</span></td><td>22</td></tr><tr><th scope="row">2019/20</th><td>Jamie Vardy</td><td>23</td></tr><tr><th scope="row">2020/21</th><td>Harry Kane</td><td>23</td></tr><tr><th scope="row">2021/22</th><td>Heung-min Son / Mohamed Salah <span class="empate">empate</span></td><td>23</td></tr><tr><th scope="row">2022/23</th><td>Erling Haaland</td><td>36</td></tr><tr><th scope="row">2023/24</th><td>Erling Haaland</td><td>27</td></tr><tr><th scope="row">2024/25</th><td>Mohamed Salah</td><td>29</td></tr><tr><th scope="row">2025/26</th><td>Erling Haaland</td><td>27</td></tr></tbody></table></div><div class="panel" role="tabpanel" id="panel-2" aria-labelledby="tab-2" tabindex="0"><h3 class="panel-tit">Serie A</h3><table class="pichichis"><thead><tr><th scope="col">Temporada</th><th scope="col">Máximo goleador</th><th scope="col">Goles</th></tr></thead><tbody><tr><th scope="row">2012/13</th><td>Edinson Cavani</td><td>29</td></tr><tr><th scope="row">2013/14</th><td>Ciro Immobile</td><td>22</td></tr><tr><th scope="row">2014/15</th><td>Luca Toni / Mauro Icardi <span class="empate">empate</span></td><td>22</td></tr><tr><th scope="row">2015/16</th><td>Gonzalo Higuaín</td><td>36</td></tr><tr><th scope="row">2016/17</th><td>Edin Dzeko</td><td>29</td></tr><tr><th scope="row">2017/18</th><td>Ciro Immobile / Mauro Icardi <span class="empate">empate</span></td><td>29</td></tr><tr><th scope="row">2018/19</th><td>Fabio Quagliarella</td><td>26</td></tr><tr><th scope="row">2019/20</th><td>Ciro Immobile</td><td>36</td></tr><tr><th scope="row">2020/21</th><td>Cristiano Ronaldo</td><td>29</td></tr><tr><th scope="row">2021/22</th><td>Ciro Immobile</td><td>27</td></tr><tr><th scope="row">2022/23</th><td>Victor Osimhen</td><td>26</td></tr><tr><th scope="row">2023/24</th><td>Lautaro Martínez</td><td>24</td></tr><tr><th scope="row">2024/25</th><td>Mateo Retegui</td><td>25</td></tr><tr><th scope="row">2025/26</th><td>Lautaro Martínez</td><td>17</td></tr></tbody></table></div><div class="panel" role="tabpanel" id="panel-3" aria-labelledby="tab-3" tabindex="0"><h3 class="panel-tit">Bundesliga</h3><table class="pichichis"><thead><tr><th scope="col">Temporada</th><th scope="col">Máximo goleador</th><th scope="col">Goles</th></tr></thead><tbody><tr><th scope="row">2012/13</th><td>Stefan Kießling</td><td>25</td></tr><tr><th scope="row">2013/14</th><td>Robert Lewandowski</td><td>20</td></tr><tr><th scope="row">2014/15</th><td>Alexander Meier</td><td>19</td></tr><tr><th scope="row">2015/16</th><td>Robert Lewandowski</td><td>30</td></tr><tr><th scope="row">2016/17</th><td>Pierre-Emerick Aubameyang</td><td>31</td></tr><tr><th scope="row">2017/18</th><td>Robert Lewandowski</td><td>29</td></tr><tr><th scope="row">2018/19</th><td>Robert Lewandowski</td><td>22</td></tr><tr><th scope="row">2019/20</th><td>Robert Lewandowski</td><td>34</td></tr><tr><th scope="row">2020/21</th><td>Robert Lewandowski</td><td>41</td></tr><tr><th scope="row">2021/22</th><td>Robert Lewandowski</td><td>35</td></tr><tr><th scope="row">2022/23</th><td>Christopher Nkunku / Niclas Füllkrug <span class="empate">empate</span></td><td>16</td></tr><tr><th scope="row">2023/24</th><td>Harry Kane</td><td>36</td></tr><tr><th scope="row">2024/25</th><td>Harry Kane</td><td>26</td></tr><tr><th scope="row">2025/26</th><td>Harry Kane</td><td>36</td></tr></tbody></table></div><div class="panel" role="tabpanel" id="panel-4" aria-labelledby="tab-4" tabindex="0"><h3 class="panel-tit">Ligue 1</h3><table class="pichichis"><thead><tr><th scope="col">Temporada</th><th scope="col">Máximo goleador</th><th scope="col">Goles</th></tr></thead><tbody><tr><th scope="row">2012/13</th><td>Zlatan Ibrahimović</td><td>30</td></tr><tr><th scope="row">2013/14</th><td>Zlatan Ibrahimović</td><td>26</td></tr><tr><th scope="row">2014/15</th><td>Alexandre Lacazette</td><td>27</td></tr><tr><th scope="row">2015/16</th><td>Zlatan Ibrahimović</td><td>38</td></tr><tr><th scope="row">2016/17</th><td>Edinson Cavani</td><td>35</td></tr><tr><th scope="row">2017/18</th><td>Edinson Cavani</td><td>28</td></tr><tr><th scope="row">2018/19</th><td>Kylian Mbappé</td><td>33</td></tr><tr><th scope="row">2019/20</th><td>Kylian Mbappé / Wissam Ben Yedder <span class="empate">empate</span></td><td>18</td></tr><tr><th scope="row">2020/21</th><td>Kylian Mbappé</td><td>27</td></tr><tr><th scope="row">2021/22</th><td>Kylian Mbappé</td><td>28</td></tr><tr><th scope="row">2022/23</th><td>Kylian Mbappé</td><td>29</td></tr><tr><th scope="row">2023/24</th><td>Kylian Mbappé</td><td>27</td></tr><tr><th scope="row">2024/25</th><td>Mason Greenwood / Ousmane Dembélé <span class="empate">empate</span></td><td>21</td></tr><tr><th scope="row">2025/26</th><td>Estéban Lepaul</td><td>21</td></tr></tbody></table></div></div>
+        <div>
+          <div class="apunte">
+            <h3>Más veces máximo goleador</h3>
+            <ol class="ranking">
+              <li><span>Robert Lewandowski</span><b>8</b></li>
+              <li><span>Kylian Mbappé</span><b>8</b></li>
+              <li><span>Harry Kane</span><b>6</b></li>
+              <li><span>Lionel Messi</span><b>6</b></li>
+            </ol>
+          </div>
+          <div class="apunte">
+            <h3>La mejor temporada</h3>
+            <p><strong>Cristiano Ronaldo, 48 goles</strong> en LaLiga 2014/15. Le siguen Messi en 2012/13 (46) y en 2014/15 (43), y Lewandowski en la Bundesliga 2020/21 (41).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="t-sec" aria-labelledby="regular-title">
+      <h2 id="regular-title">Rendir todos los años</h2>
+      <p class="intro-sec">Llamé <strong>temporada de élite</strong> a la que un jugador termina con al menos 1.500 minutos y 0,8 goles más asistencias por 90. Solo el 3,1 % de las temporadas con esos minutos llegan a ese nivel. Lewandowski lo ha conseguido en las 14 analizadas.</p>
+      <p class="desliza" aria-hidden="true">Desliza para ver el gráfico completo →</p>
+      <div class="grafico-ancho"><svg class="grafico" viewBox="0 0 920 352" role="img" aria-labelledby="re-t re-d">
+<title id="re-t">Jugadores con más temporadas de élite</title>
+<desc id="re-d">Robert Lewandowski: 14 temporadas. Lionel Messi: 11 temporadas. Kylian Mbappé: 10 temporadas. Cristiano Ronaldo: 9 temporadas. Thomas Müller: 9 temporadas. Karim Benzema: 8 temporadas. Luis Suárez: 8 temporadas. Mohamed Salah: 8 temporadas. Harry Kane: 8 temporadas. Neymar: 7 temporadas.</desc>
+<g class="g-fila"><title>Robert Lewandowski: 14 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="2" width="920" height="34"/><text class="g-txt" x="176" y="23" text-anchor="end">Robert Lewandowski</text><rect class="g-pista" x="190" y="8" width="680.0" height="20" rx="3"/><rect class="g-barra g-destacada" x="190" y="8" width="680.0" height="20" rx="3"/><text class="g-valor" x="880.0" y="23">14</text></g>
+<g class="g-fila"><title>Lionel Messi: 11 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="36" width="920" height="34"/><text class="g-txt" x="176" y="57" text-anchor="end">Lionel Messi</text><rect class="g-pista" x="190" y="42" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="42" width="534.3" height="20" rx="3"/><text class="g-valor" x="880.0" y="57">11</text></g>
+<g class="g-fila"><title>Kylian Mbappé: 10 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="70" width="920" height="34"/><text class="g-txt" x="176" y="91" text-anchor="end">Kylian Mbappé</text><rect class="g-pista" x="190" y="76" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="76" width="485.7" height="20" rx="3"/><text class="g-valor" x="880.0" y="91">10</text></g>
+<g class="g-fila"><title>Cristiano Ronaldo: 9 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="104" width="920" height="34"/><text class="g-txt" x="176" y="125" text-anchor="end">Cristiano Ronaldo</text><rect class="g-pista" x="190" y="110" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="110" width="437.1" height="20" rx="3"/><text class="g-valor" x="880.0" y="125">9</text></g>
+<g class="g-fila"><title>Thomas Müller: 9 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="138" width="920" height="34"/><text class="g-txt" x="176" y="159" text-anchor="end">Thomas Müller</text><rect class="g-pista" x="190" y="144" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="144" width="437.1" height="20" rx="3"/><text class="g-valor" x="880.0" y="159">9</text></g>
+<g class="g-fila"><title>Karim Benzema: 8 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="172" width="920" height="34"/><text class="g-txt" x="176" y="193" text-anchor="end">Karim Benzema</text><rect class="g-pista" x="190" y="178" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="178" width="388.6" height="20" rx="3"/><text class="g-valor" x="880.0" y="193">8</text></g>
+<g class="g-fila"><title>Luis Suárez: 8 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="206" width="920" height="34"/><text class="g-txt" x="176" y="227" text-anchor="end">Luis Suárez</text><rect class="g-pista" x="190" y="212" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="212" width="388.6" height="20" rx="3"/><text class="g-valor" x="880.0" y="227">8</text></g>
+<g class="g-fila"><title>Mohamed Salah: 8 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="240" width="920" height="34"/><text class="g-txt" x="176" y="261" text-anchor="end">Mohamed Salah</text><rect class="g-pista" x="190" y="246" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="246" width="388.6" height="20" rx="3"/><text class="g-valor" x="880.0" y="261">8</text></g>
+<g class="g-fila"><title>Harry Kane: 8 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="274" width="920" height="34"/><text class="g-txt" x="176" y="295" text-anchor="end">Harry Kane</text><rect class="g-pista" x="190" y="280" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="280" width="388.6" height="20" rx="3"/><text class="g-valor" x="880.0" y="295">8</text></g>
+<g class="g-fila"><title>Neymar: 7 de 14 temporadas de élite</title><rect class="g-hit" x="0" y="308" width="920" height="34"/><text class="g-txt" x="176" y="329" text-anchor="end">Neymar</text><rect class="g-pista" x="190" y="314" width="680.0" height="20" rx="3"/><rect class="g-barra" x="190" y="314" width="340.0" height="20" rx="3"/><text class="g-valor" x="880.0" y="329">7</text></g>
+</svg></div>
+      <p class="nota-graf">Número de temporadas de élite sobre 14 posibles.</p>
+    </section>
+
+    <section class="t-sec" aria-labelledby="carreras-title">
+      <h2 id="carreras-title">Cuatro carreras, temporada a temporada</h2>
+      <p class="intro-sec">Goles en liga de los cuatro grandes goleadores del periodo. Las líneas se cortan cuando el jugador sale de las cinco grandes ligas: Messi hacia la MLS y Cristiano hacia Arabia Saudí.</p>
+      <div class="leyenda" aria-hidden="true"><span><i class="linea" style="background:var(--c1)"></i>Lewandowski</span><span><i class="linea" style="background:var(--c2)"></i>Messi</span><span><i class="linea" style="background:var(--c3)"></i>Kane</span><span><i class="linea" style="background:var(--c4)"></i>Cristiano Ronaldo</span></div>
+      <p class="desliza" aria-hidden="true">Desliza para ver el gráfico completo →</p>
+      <div class="grafico-ancho"><svg class="grafico" viewBox="0 0 920 400" role="img" aria-labelledby="tr-t tr-d">
+<title id="tr-t">Goles en liga por temporada de cuatro grandes goleadores</title>
+<desc id="tr-d">Lewandowski: 2012/13 24, 2013/14 20, 2014/15 17, 2015/16 30, 2016/17 30, 2017/18 29, 2018/19 22, 2019/20 34, 2020/21 41, 2021/22 35, 2022/23 23, 2023/24 19, 2024/25 27, 2025/26 14. Messi: 2012/13 46, 2013/14 28, 2014/15 43, 2015/16 26, 2016/17 37, 2017/18 34, 2018/19 36, 2019/20 25, 2020/21 30, 2021/22 6, 2022/23 16. Kane: 2012/13 0, 2013/14 3, 2014/15 21, 2015/16 25, 2016/17 29, 2017/18 30, 2018/19 17, 2019/20 18, 2020/21 23, 2021/22 17, 2022/23 30, 2023/24 36, 2024/25 26, 2025/26 36. Cristiano Ronaldo: 2012/13 34, 2013/14 31, 2014/15 48, 2015/16 35, 2016/17 25, 2017/18 26, 2018/19 21, 2019/20 31, 2020/21 29, 2021/22 18, 2022/23 1.</desc>
+<g class="g-grid">
+<line x1="46" y1="354.0" x2="810" y2="354.0"/>
+<line x1="46" y1="286.4" x2="810" y2="286.4"/>
+<line x1="46" y1="218.8" x2="810" y2="218.8"/>
+<line x1="46" y1="151.2" x2="810" y2="151.2"/>
+<line x1="46" y1="83.6" x2="810" y2="83.6"/>
+<line x1="46" y1="16.0" x2="810" y2="16.0"/>
+</g><g class="g-eje">
+<text x="36" y="358.0" text-anchor="end">0</text>
+<text x="36" y="290.4" text-anchor="end">10</text>
+<text x="36" y="222.8" text-anchor="end">20</text>
+<text x="36" y="155.2" text-anchor="end">30</text>
+<text x="36" y="87.6" text-anchor="end">40</text>
+<text x="36" y="20.0" text-anchor="end">50</text>
+<text x="46.0" y="382" text-anchor="middle">12/13</text>
+<text x="104.0" y="382" text-anchor="middle">13/14</text>
+<text x="162.0" y="382" text-anchor="middle">14/15</text>
+<text x="220.0" y="382" text-anchor="middle">15/16</text>
+<text x="278.0" y="382" text-anchor="middle">16/17</text>
+<text x="336.0" y="382" text-anchor="middle">17/18</text>
+<text x="394.0" y="382" text-anchor="middle">18/19</text>
+<text x="452.0" y="382" text-anchor="middle">19/20</text>
+<text x="510.0" y="382" text-anchor="middle">20/21</text>
+<text x="568.0" y="382" text-anchor="middle">21/22</text>
+<text x="626.0" y="382" text-anchor="middle">22/23</text>
+<text x="684.0" y="382" text-anchor="middle">23/24</text>
+<text x="742.0" y="382" text-anchor="middle">24/25</text>
+<text x="800.0" y="382" text-anchor="middle">25/26</text>
+<text x="36" y="398" text-anchor="end" class="g-eje-tit">temp.</text>
+</g>
+<g class="serie c1"><path d="M46.0,191.8 L104.0,218.8 L162.0,239.1 L220.0,151.2 L278.0,151.2 L336.0,158.0 L394.0,205.3 L452.0,124.2 L510.0,76.8 L568.0,117.4 L626.0,198.5 L684.0,225.6 L742.0,171.5 L800.0,259.4"/>
+<circle cx="46.0" cy="191.8" r="4.5"><title>Lewandowski · 2012/13: 24 goles</title></circle>
+<circle cx="104.0" cy="218.8" r="4.5"><title>Lewandowski · 2013/14: 20 goles</title></circle>
+<circle cx="162.0" cy="239.1" r="4.5"><title>Lewandowski · 2014/15: 17 goles</title></circle>
+<circle cx="220.0" cy="151.2" r="4.5"><title>Lewandowski · 2015/16: 30 goles</title></circle>
+<circle cx="278.0" cy="151.2" r="4.5"><title>Lewandowski · 2016/17: 30 goles</title></circle>
+<circle cx="336.0" cy="158.0" r="4.5"><title>Lewandowski · 2017/18: 29 goles</title></circle>
+<circle cx="394.0" cy="205.3" r="4.5"><title>Lewandowski · 2018/19: 22 goles</title></circle>
+<circle cx="452.0" cy="124.2" r="4.5"><title>Lewandowski · 2019/20: 34 goles</title></circle>
+<circle cx="510.0" cy="76.8" r="4.5"><title>Lewandowski · 2020/21: 41 goles</title></circle>
+<circle cx="568.0" cy="117.4" r="4.5"><title>Lewandowski · 2021/22: 35 goles</title></circle>
+<circle cx="626.0" cy="198.5" r="4.5"><title>Lewandowski · 2022/23: 23 goles</title></circle>
+<circle cx="684.0" cy="225.6" r="4.5"><title>Lewandowski · 2023/24: 19 goles</title></circle>
+<circle cx="742.0" cy="171.5" r="4.5"><title>Lewandowski · 2024/25: 27 goles</title></circle>
+<circle cx="800.0" cy="259.4" r="4.5"><title>Lewandowski · 2025/26: 14 goles</title></circle>
+<text class="g-fin" x="810.0" y="263.4">Lewandowski</text></g>
+<g class="serie c2"><path d="M46.0,43.0 L104.0,164.7 L162.0,63.3 L220.0,178.2 L278.0,103.9 L336.0,124.2 L394.0,110.6 L452.0,185.0 L510.0,151.2 L568.0,313.4 L626.0,245.8"/>
+<circle cx="46.0" cy="43.0" r="4.5"><title>Messi · 2012/13: 46 goles</title></circle>
+<circle cx="104.0" cy="164.7" r="4.5"><title>Messi · 2013/14: 28 goles</title></circle>
+<circle cx="162.0" cy="63.3" r="4.5"><title>Messi · 2014/15: 43 goles</title></circle>
+<circle cx="220.0" cy="178.2" r="4.5"><title>Messi · 2015/16: 26 goles</title></circle>
+<circle cx="278.0" cy="103.9" r="4.5"><title>Messi · 2016/17: 37 goles</title></circle>
+<circle cx="336.0" cy="124.2" r="4.5"><title>Messi · 2017/18: 34 goles</title></circle>
+<circle cx="394.0" cy="110.6" r="4.5"><title>Messi · 2018/19: 36 goles</title></circle>
+<circle cx="452.0" cy="185.0" r="4.5"><title>Messi · 2019/20: 25 goles</title></circle>
+<circle cx="510.0" cy="151.2" r="4.5"><title>Messi · 2020/21: 30 goles</title></circle>
+<circle cx="568.0" cy="313.4" r="4.5"><title>Messi · 2021/22: 6 goles</title></circle>
+<circle cx="626.0" cy="245.8" r="4.5"><title>Messi · 2022/23: 16 goles</title></circle>
+<text class="g-fin" x="636.0" y="249.8">Messi</text></g>
+<g class="serie c3"><path d="M46.0,354.0 L104.0,333.7 L162.0,212.0 L220.0,185.0 L278.0,158.0 L336.0,151.2 L394.0,239.1 L452.0,232.3 L510.0,198.5 L568.0,239.1 L626.0,151.2 L684.0,110.6 L742.0,178.2 L800.0,110.6"/>
+<circle cx="46.0" cy="354.0" r="4.5"><title>Kane · 2012/13: 0 goles</title></circle>
+<circle cx="104.0" cy="333.7" r="4.5"><title>Kane · 2013/14: 3 goles</title></circle>
+<circle cx="162.0" cy="212.0" r="4.5"><title>Kane · 2014/15: 21 goles</title></circle>
+<circle cx="220.0" cy="185.0" r="4.5"><title>Kane · 2015/16: 25 goles</title></circle>
+<circle cx="278.0" cy="158.0" r="4.5"><title>Kane · 2016/17: 29 goles</title></circle>
+<circle cx="336.0" cy="151.2" r="4.5"><title>Kane · 2017/18: 30 goles</title></circle>
+<circle cx="394.0" cy="239.1" r="4.5"><title>Kane · 2018/19: 17 goles</title></circle>
+<circle cx="452.0" cy="232.3" r="4.5"><title>Kane · 2019/20: 18 goles</title></circle>
+<circle cx="510.0" cy="198.5" r="4.5"><title>Kane · 2020/21: 23 goles</title></circle>
+<circle cx="568.0" cy="239.1" r="4.5"><title>Kane · 2021/22: 17 goles</title></circle>
+<circle cx="626.0" cy="151.2" r="4.5"><title>Kane · 2022/23: 30 goles</title></circle>
+<circle cx="684.0" cy="110.6" r="4.5"><title>Kane · 2023/24: 36 goles</title></circle>
+<circle cx="742.0" cy="178.2" r="4.5"><title>Kane · 2024/25: 26 goles</title></circle>
+<circle cx="800.0" cy="110.6" r="4.5"><title>Kane · 2025/26: 36 goles</title></circle>
+<text class="g-fin" x="810.0" y="114.6">Kane</text></g>
+<g class="serie c4"><path d="M46.0,124.2 L104.0,144.4 L162.0,29.5 L220.0,117.4 L278.0,185.0 L336.0,178.2 L394.0,212.0 L452.0,144.4 L510.0,158.0 L568.0,232.3 L626.0,347.2"/>
+<circle cx="46.0" cy="124.2" r="4.5"><title>Cristiano Ronaldo · 2012/13: 34 goles</title></circle>
+<circle cx="104.0" cy="144.4" r="4.5"><title>Cristiano Ronaldo · 2013/14: 31 goles</title></circle>
+<circle cx="162.0" cy="29.5" r="4.5"><title>Cristiano Ronaldo · 2014/15: 48 goles</title></circle>
+<circle cx="220.0" cy="117.4" r="4.5"><title>Cristiano Ronaldo · 2015/16: 35 goles</title></circle>
+<circle cx="278.0" cy="185.0" r="4.5"><title>Cristiano Ronaldo · 2016/17: 25 goles</title></circle>
+<circle cx="336.0" cy="178.2" r="4.5"><title>Cristiano Ronaldo · 2017/18: 26 goles</title></circle>
+<circle cx="394.0" cy="212.0" r="4.5"><title>Cristiano Ronaldo · 2018/19: 21 goles</title></circle>
+<circle cx="452.0" cy="144.4" r="4.5"><title>Cristiano Ronaldo · 2019/20: 31 goles</title></circle>
+<circle cx="510.0" cy="158.0" r="4.5"><title>Cristiano Ronaldo · 2020/21: 29 goles</title></circle>
+<circle cx="568.0" cy="232.3" r="4.5"><title>Cristiano Ronaldo · 2021/22: 18 goles</title></circle>
+<circle cx="626.0" cy="347.2" r="4.5"><title>Cristiano Ronaldo · 2022/23: 1 goles</title></circle>
+<text class="g-fin" x="636.0" y="351.2">Cristiano Ronaldo</text></g>
+</svg></div>
+      <p class="nota-graf">Eje horizontal: temporada (12/13 = 2012/13). Pasa el ratón por un punto para ver los goles.</p>
+    </section>
+
+    <section class="t-sec" aria-labelledby="decisiones-title">
+      <h2 id="decisiones-title">Decisiones que cambian el resultado</h2>
+      <p class="intro-sec">Los datos estaban limpios, pero tres decisiones marcaron la diferencia entre un ranking correcto y uno engañoso.</p>
+      <div class="decisiones">
+        <article class="decision">
+          <span class="num">01</span>
+          <h3>Medir por 90 minutos</h3>
+          <p>La media de minutos por aparición es 68 y la mediana, 90: hay muchos suplentes. Sin normalizar y sin un mínimo de minutos, un gol en 20 minutos parecería el mejor rendimiento del mundo.</p>
+        </article>
+        <article class="decision">
+          <span class="num">02</span>
+          <h3>La temporada de la COVID</h3>
+          <p>La 2019/20 terminó en julio y agosto de 2020. Con el corte habitual en julio, esos partidos caían en la temporada siguiente. Moví el corte de 2020 al 15 de agosto y los máximos goleadores pasaron a coincidir con los oficiales.</p>
+        </article>
+        <article class="decision">
+          <span class="num">03</span>
+          <h3>Los empates cuentan</h3>
+          <p>Quedarse con el primer resultado de un <code>idxmax</code> habría dejado fuera a Aubameyang y Mané en la Premier 2018/19. La tabla recoge a todos los empatados.</p>
+        </article>
+      </div>
+      <div class="limites">
+        <b>Lo que no mide</b>
+        <ul>
+          <li>No hay posición: delanteros y defensas se comparan con la misma métrica.</li>
+          <li>Empieza en 2012, así que faltan las mejores temporadas anteriores de Messi y Cristiano.</li>
+          <li>Solo ligas: sin copas ni Champions League.</li>
+          <li>Goles y asistencias no lo son todo: faltan xG, regates o acciones defensivas.</li>
+        </ul>
+      </div>
+      <p class="conclusion">Por volumen manda Lewandowski; por eficiencia, Messi está en otra categoría. Y la regularidad es lo más difícil de encontrar: apenas el 3 % de las temporadas llega al nivel de élite.</p>
+    </section>
+
+    <section class="t-sec" aria-labelledby="hecho-title">
+      <h2 id="hecho-title">Cómo está hecho</h2>
+      <p class="intro-sec">Todo el análisis vive en un notebook de Jupyter que se ejecuta de principio a fin y guarda los gráficos en una carpeta. Los gráficos de esta página están redibujados a partir de esos mismos resultados.</p>
+      <div class="dos-col">
+        <div>
+          <h3>El proceso</h3>
+          <ol class="pasos-proc">
+            <li><span><strong>Carga y calidad.</strong> Nulos, duplicados y apariciones con 0 minutos.</span></li>
+            <li><span><strong>Preparación.</strong> Columna de temporada con la corrección de 2020 y filtro de las cinco ligas.</span></li>
+            <li><span><strong>Exploración.</strong> Distribución de minutos y de goles por aparición.</span></li>
+            <li><span><strong>Agregación.</strong> <code>groupby</code> por jugador, liga y temporada, y métricas por 90.</span></li>
+            <li><span><strong>Visualización y conclusiones,</strong> con sus limitaciones.</span></li>
+          </ol>
+        </div>
+        <div>
+          <h3>Ejecutarlo</h3>
+          <p class="intro-sec" style="font-size:15px">Necesitas Python 3 y descargar <code>appearances.csv</code> de <a class="enlace" href="https://www.kaggle.com/datasets/davidcariboo/player-scores" target="_blank" rel="noopener noreferrer">Kaggle</a> en la carpeta <code>data/</code>.</p>
+          <pre class="cmd"><span class="c"># descargar el código</span>
+git clone https://github.com/Rotciv1210/analisis-futbol-transfermarkt.git
+cd analisis-futbol-transfermarkt
+pip install -r requirements.txt
+
+<span class="c"># abrir el notebook</span>
+jupyter notebook analisis_rendimiento_jugadores.ipynb</pre>
+        </div>
+      </div>
+    </section>
+
+    <nav class="t-foot-nav" aria-label="Más">
+      <a class="scroll-link" href="/#proyectos"><span class="scroll-icon" aria-hidden="true">←</span> Volver a los proyectos</a>
+      <span class="hero-actions"><a class="btn-cv" href="https://github.com/Rotciv1210/analisis-futbol-transfermarkt" target="_blank" rel="noopener noreferrer">Código en GitHub <span aria-hidden="true">↗</span></a><a class="btn-contact" href="mailto:victorpereirarigal00@gmail.com">Escríbeme <span aria-hidden="true">↗</span></a></span>
+    </nav>
+
+    <footer>
+      <span class="footer-note">Hecho con curiosidad en A Coruña <span>© 2026</span></span>
+      <div class="footer-links"><a href="/Victor_Pereira_CV.pdf" download>CV <span>↓</span></a><a href="mailto:victorpereirarigal00@gmail.com">Email <span>↗</span></a><a href="https://github.com/Rotciv1210" target="_blank" rel="noopener noreferrer">GitHub <span>↗</span></a><a href="https://www.linkedin.com/in/victor-pereira-rigal-969aa236b/" target="_blank" rel="noopener noreferrer">LinkedIn <span>↗</span></a></div>
+    </footer>
+  </main>
+
+  <script>
+    // Pestañas de ligas. Sin JavaScript se ven todas las tablas, una debajo de otra.
+    (function () {
+      var lista = document.querySelector('.tabs');
+      if (!lista) return;
+      var tabs = Array.prototype.slice.call(lista.querySelectorAll('[role="tab"]'));
+      var paneles = tabs.map(function (t) { return document.getElementById(t.getAttribute('aria-controls')); });
+      document.documentElement.classList.add('js');
+      lista.hidden = false;
+      function activar(i, foco) {
+        tabs.forEach(function (t, j) {
+          var sel = i === j;
+          t.setAttribute('aria-selected', sel ? 'true' : 'false');
+          t.tabIndex = sel ? 0 : -1;
+          paneles[j].hidden = !sel;
+        });
+        if (foco) tabs[i].focus();
+      }
+      tabs.forEach(function (t, i) {
+        t.addEventListener('click', function () { activar(i, false); });
+        t.addEventListener('keydown', function (e) {
+          var k = e.key, n = tabs.length;
+          if (k === 'ArrowRight') { e.preventDefault(); activar((i + 1) % n, true); }
+          else if (k === 'ArrowLeft') { e.preventDefault(); activar((i - 1 + n) % n, true); }
+          else if (k === 'Home') { e.preventDefault(); activar(0, true); }
+          else if (k === 'End') { e.preventDefault(); activar(n - 1, true); }
+        });
+      });
+      activar(0, false);
+    })();
+  </script>
+</body>
+</html>
